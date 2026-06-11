@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🍗 鸭腿大叔：瞒天过海</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #d9cdb3;
+  --card: #f5f0e8;
+  --accent: #c0392b;
+  --danger: #c0392b;
+  --gold: #b8860b;
+  --text: #3e1f1f;
+  --muted: #8b7355;
+  --green: #27ae60;
+}
+
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+}
+
+#app {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,.15);
+  min-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== SCREENS ===== */
+.screen { display: none; flex-direction: column; flex: 1; padding: 20px 16px; }
+.screen.active { display: flex; }
+
+/* Title */
+#screen-title { text-align: center; justify-content: center; align-items: center; gap: 24px; }
+#screen-title .logo { font-size: 72px; animation: bounce 0.6s ease infinite alternate; }
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+#screen-title h1 { font-size: 28px; line-height: 1.4; }
+#screen-title h1 span { color: var(--accent); }
+#screen-title .subtitle { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.btn-start {
+  background: var(--accent); color: #fff; border: none;
+  padding: 14px 48px; font-size: 20px; border-radius: 50px;
+  cursor: pointer; font-weight: bold; letter-spacing: 2px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-start:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(192,57,43,.25); }
+.btn-start:active { transform: scale(0.97); }
+
+/* Header */
+.game-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,.12);
+  font-size: 13px; color: var(--muted);
+}
+.game-header .level-badge {
+  background: var(--accent); color: #fff; padding: 3px 10px;
+  border-radius: 20px; font-size: 12px; font-weight: bold;
+}
+
+/* Stats bar */
+.stats-bar {
+  display: flex; gap: 12px; margin: 12px 0; font-size: 13px;
+}
+.stat {
+  flex: 1; background: rgba(245,240,232,0.88); padding: 8px 12px;
+  border-radius: 8px; display: flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(0,0,0,.1);
+}
+.stat .label { color: var(--muted); font-size: 11px; }
+.stat .value { font-weight: bold; font-size: 16px; }
+.suspicion-bar { height: 4px; background: rgba(0,0,0,.08); border-radius: 2px; margin-top: 4px; }
+.suspicion-fill { height: 100%; background: var(--danger); border-radius: 2px; transition: width 0.3s; }
+.suspicion-fill.warn { background: var(--accent); }
+.suspicion-fill.danger { background: var(--danger); animation: pulse 0.5s ease infinite alternate; }
+@keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
+
+/* Scene info */
+.scene-info {
+  background: rgba(245,240,232,0.88); padding: 10px 14px; border-radius: 8px;
+  margin: 8px 0; font-size: 13px; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid rgba(0,0,0,.1);
+}
+.scene-info .scene-icon { font-size: 24px; }
+.scene-info .scene-name { color: var(--text); font-weight: bold; }
+
+/* Dialogue area */
+.dialogue-area { flex: 1; display: flex; flex-direction: column; gap: 12px; margin: 12px 0; }
+.npc-bubble {
+  background: rgba(245,240,232,0.88); padding: 14px; border-radius: 12px 12px 12px 4px;
+  line-height: 1.6; font-size: 15px;
+  border: 1px solid rgba(0,0,0,.12);
+}
+.npc-bubble .npc-name { font-size: 11px; color: var(--accent); margin-bottom: 4px; }
+.npc-bubble .npc-type { font-size: 11px; color: var(--muted); }
+
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choice-btn {
+  background: rgba(245,240,232,0.88); border: 1.5px solid rgba(0,0,0,.15);
+  color: var(--text); padding: 12px 14px; border-radius: 10px;
+  cursor: pointer; text-align: left; font-size: 14px; line-height: 1.5;
+  transition: background 0.15s, border-color 0.15s;
+}
+.choice-btn:hover { background: rgba(240,232,215,1); border-color: var(--accent); }
+.choice-btn:active { transform: scale(0.98); }
+.choice-btn .tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
+.tag-lie { background: rgba(192,57,43,.15); color: #a8231a; font-weight: bold; }
+.tag-honest { background: rgba(39,174,96,.15); color: #1e7a42; font-weight: bold; }
+.tag-dodge { background: rgba(184,134,11,.15); color: #8b6914; font-weight: bold; }
+
+/* Evidence area */
+.evidence-area {
+  background: rgba(245,240,232,0.88); border-radius: 12px; padding: 16px;
+  margin: 8px 0; text-align: center; min-height: 140px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  border: 1.5px solid rgba(0,0,0,.12);
+}
+.evidence-area .phase-label {
+  font-size: 12px; color: var(--danger); letter-spacing: 2px; text-transform: uppercase;
+}
+.evidence-area .timer {
+  font-size: 22px; font-weight: bold; color: var(--accent);
+}
+.evidence-area .timer.urgent { color: var(--danger); animation: pulse 0.3s ease infinite alternate; }
+
+/* TAP game — rapid tap to destroy */
+.tap-target {
+  font-size: 56px; cursor: pointer; animation: popIn 0.3s ease;
+  user-select: none; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.05s;
+}
+.tap-target:active, .tap-target.tapped { transform: scale(0.85); }
+.tap-progress {
+  width: 100%; height: 10px; background: rgba(0,0,0,.08); border-radius: 5px; overflow: hidden;
+}
+.tap-progress-fill {
+  height: 100%; background: var(--green); border-radius: 5px; transition: width 0.1s;
+  width: 0%;
+}
+.tap-count { font-size: 12px; color: var(--muted); }
+
+/* DRAG game — pull icon to shred bin */
+.drag-area { position: relative; width: 100%; height: 100px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+.drag-target {
+  font-size: 42px; cursor: grab; user-select: none; position: absolute; left: 20px;
+  transition: none; z-index: 2; touch-action: none;
+}
+.drag-target.grabbed { cursor: grabbing; transform: scale(1.1); }
+.drag-zone {
+  font-size: 40px; opacity: 0.4; border: 2px dashed rgba(0,0,0,.1);
+  border-radius: 12px; padding: 10px 20px; transition: all 0.2s;
+  position: absolute; right: 20px;
+}
+.drag-zone.highlight { opacity: 1; border-color: var(--danger); background: rgba(231,76,60,.2); transform: scale(1.1); }
+
+/* SEQUENCE game — tap numbers in order */
+.seq-area { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.seq-btn {
+  width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(0,0,0,.15);
+  background: rgba(245,240,232,0.88); color: var(--text); font-size: 20px; font-weight: bold;
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+}
+.seq-btn:active { transform: scale(0.9); }
+.seq-btn.done { background: var(--green); border-color: var(--green); color: #fff; }
+.seq-btn.wrong { background: var(--danger); border-color: var(--danger); animation: shake 0.3s ease; }
+.seq-hint { font-size: 12px; color: var(--muted); }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+.evidence-name { font-size: 13px; color: var(--muted); }
+@keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.evidence-result {
+  font-size: 14px; padding: 8px; border-radius: 6px; text-align: center;
+}
+.evidence-result.destroyed { background: rgba(46,204,113,.2); color: var(--green); }
+.evidence-result.found { background: rgba(231,76,60,.2); color: var(--danger); }
+
+/* Bottom bar */
+.bottom-bar {
+  display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,.08);
+  font-size: 12px; color: var(--muted);
+}
+.bottom-bar .hint { flex: 1; }
+
+/* Level complete */
+#screen-level-done { text-align: center; justify-content: center; align-items: center; gap: 20px; }
+#screen-level-done .big-icon { font-size: 64px; }
+#screen-level-done h2 { font-size: 22px; }
+#screen-level-done .stats-summary {
+  font-size: 14px; color: var(--muted); line-height: 1.8;
+  background: rgba(245,240,232,0.88); padding: 14px; border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.1);
+}
+.btn-next {
+  background: var(--accent); color: #fff; border: none;
+  padding: 12px 36px; font-size: 16px; border-radius: 50px;
+  cursor: pointer; font-weight: bold;
+}
+.btn-next:hover { transform: scale(1.05); }
+
+/* Ending */
+#screen-ending { text-align: center; justify-content: center; align-items: center; gap: 16px; }
+#screen-ending .end-icon { font-size: 72px; }
+#screen-ending h2 { font-size: 24px; line-height: 1.5; }
+#screen-ending .end-stats, #screen-gameover .end-stats {
+  font-size: 14px; color: var(--muted); line-height: 1.8;
+  background: rgba(245,240,232,0.88); padding: 14px; border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.1);
+}
+#screen-ending .end-flavor {
+  font-size: 14px; color: var(--accent); line-height: 1.6; font-style: italic;
+  background: rgba(245,240,232,0.88); padding: 12px; border-radius: 10px;
+}
+
+/* Tour promo */
+.tour-promo {
+  background: linear-gradient(135deg, rgba(192,57,43,.12), rgba(241,196,15,.15));
+  border: 1px solid rgba(192,57,43,.15); border-radius: 12px;
+  padding: 16px; margin-top: 8px; line-height: 1.7;
+}
+.tour-promo h3 { font-size: 15px; color: var(--gold); margin-bottom: 8px; }
+.tour-promo p { font-size: 13px; color: var(--text); }
+.tour-promo .dates { font-size: 13px; color: var(--accent); font-weight: bold; margin: 6px 0; }
+.tour-promo .qrcode-hint {
+  font-size: 12px; color: var(--muted); margin-top: 8px;
+  padding: 12px; background: rgba(245,240,232,0.88); border-radius: 10px;
+  text-align: center; border: 1px solid rgba(0,0,0,.1);
+}
+
+/* Gallery */
+.gallery-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.gallery-item {
+  background: rgba(0,0,0,.1); border-radius: 10px;
+  padding: 12px 8px; text-align: center; font-size: 12px;
+}
+.gallery-item .g-icon { font-size: 32px; margin-bottom: 4px; }
+.gallery-item .g-name { color: var(--muted); font-size: 11px; }
+.gallery-item.locked { opacity: 0.3; }
+
+/* Responsive */
+@media (max-width: 360px) {
+  .stats-bar { font-size: 11px; }
+  .npc-bubble { font-size: 14px; }
+  .choice-btn { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ====== TITLE SCREEN ====== -->
+  <div id="screen-title" class="screen active">
+    <div class="logo">🍗</div>
+    <h1>鸭腿大叔<br><span>瞒天过海</span></h1>
+    <p class="subtitle">
+      你是鸭腿大叔，在北京火了三年。<br>
+      但有个小问题——<br>
+      你的"鹅腿"，<strong>全是鸭腿</strong>。<br><br>
+      现在你转战平阴·东平，<br>
+      听说这儿有个研学团开展得如火如荼，<br>
+      你必须在 8 个景点继续你的摆摊大业。<br>
+      忽悠顾客，销毁证据，瞒天过海！
+    </p>
+    <p style="font-size:12px;color:var(--text);margin-top:-8px;background:rgba(245,240,232,0.88);border:1.5px solid var(--accent);border-radius:8px;padding:8px 12px;display:inline-block;">🍗 吃过好几次鸭腿的霞客寻文旅创业团队荣誉出品</p>
+    <button class="btn-start" onclick="startGame()">🦆 开始摆摊</button>
+  </div>
+
+  <!-- ====== GAME SCREEN ====== -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <span class="level-badge" id="level-badge">第 1 关</span>
+      <span id="location-name">洪顶山摩崖刻经</span>
+      <span style="flex:1"></span>
+      <span id="lives-display" style="font-size:16px;letter-spacing:2px;">❤️❤️❤️</span>
+    </div>
+    <div class="stats-bar">
+      <div class="stat">
+        <span>💰</span>
+        <div>
+          <div class="label">营业额</div>
+          <div class="value" id="money-display">0</div>
+        </div>
+      </div>
+      <div class="stat">
+        <span>🚨</span>
+        <div>
+          <div class="label">嫌疑值</div>
+          <div class="value" id="suspicion-display">0%</div>
+          <div class="suspicion-bar"><div class="suspicion-fill" id="suspicion-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="scene-info">
+      <span class="scene-icon" id="scene-icon">🏔️</span>
+      <span class="scene-name" id="scene-name">洪顶山摩崖刻经</span>
+      <span style="flex:1"></span>
+      <span class="npc-type" id="npc-type">👤 刻经爱好者</span>
+    </div>
+
+    <!-- Dialogue phase -->
+    <div class="dialogue-area" id="dialogue-area">
+      <div class="npc-bubble" id="npc-bubble">
+        <div class="npc-name" id="npc-name">刻经爱好者</div>
+        <div id="npc-text">...</div>
+      </div>
+      <div class="choices" id="choices"></div>
+    </div>
+
+    <!-- Evidence phase -->
+    <div class="evidence-area" id="evidence-area" style="display:none;">
+      <div class="phase-label">⚠️ 游客正在找证据！快销毁！</div>
+      <div class="evidence-name" id="evidence-name"></div>
+      <div class="timer" id="evidence-timer">⏱ 4.0s</div>
+      <div id="evidence-game"></div>
+      <div id="evidence-game-hint" style="font-size:11px;color:var(--muted);"></div>
+    </div>
+    <div id="evidence-results"></div>
+
+    <div class="bottom-bar">
+      <span class="hint" id="game-hint">💡 选一个回答蒙混过关</span>
+    </div>
+  </div>
+
+  <!-- ====== LEVEL DONE ====== -->
+  <div id="screen-level-done" class="screen">
+    <div class="big-icon" id="done-icon">😅</div>
+    <h2 id="done-title">这关混过去了</h2>
+    <div class="stats-summary">
+      <div id="done-summary"></div>
+    </div>
+    <button class="btn-next" onclick="nextLevel()">➡️ 逃往下个景点</button>
+  </div>
+
+  <!-- ====== GAME OVER ====== -->
+  <div id="screen-gameover" class="screen">
+    <div class="end-icon">💀</div>
+    <h2>鸭腿大叔彻底凉了</h2>
+    <p style="color:var(--muted);font-size:14px;text-align:center;" id="gameover-reason"></p>
+    <div class="end-stats" id="gameover-stats"></div>
+    <div class="tour-promo">
+      <h3>🏛️ 摆摊失败，但僧安道壹刻经之路还在</h3>
+      <p>「僧安道壹刻经之路」青年考古学人带队精品研学团</p>
+      <p class="dates">📅 6.19-21 / 6.26-28</p>
+      <p>📍 平阴 · 东平 | 8处佛教石刻相关景点</p>
+      <p class="qrcode-hint">
+        📱 报名咨询：请关注公众号【霞客寻文化之旅】了解更多！<br>
+        <img src="images/qrcode.jpg" style="max-width:160px;width:auto;height:auto;margin-top:8px;border-radius:8px;" alt="客服二维码">
+      </p>
+    </div>
+    <button class="btn-start" onclick="location.reload()" style="font-size:14px;padding:10px 24px;">🔄 再来一局</button>
+  </div>
+
+  <!-- ====== ENDING ====== -->
+  <div id="screen-ending" class="screen">
+    <div class="end-icon" id="end-icon">🚔</div>
+    <h2 id="end-title">鸭腿大叔的摊子被端了！</h2>
+    <div class="end-stats" id="end-stats"></div>
+    <div class="end-flavor" id="end-flavor"></div>
+    <div class="tour-promo">
+      <h3>🏛️ 真正的刻经之路，等你来走</h3>
+      <p>「僧安道壹刻经之路」青年考古学人带队精品研学团</p>
+      <p class="dates">📅 6.19-21 / 6.26-28</p>
+      <p>📍 平阴 · 东平 | 8处佛教石刻相关景点</p>
+      <p class="qrcode-hint">
+        📱 报名咨询：请关注公众号【霞客寻文化之旅】了解更多！<br>
+        <img src="images/qrcode.jpg" style="max-width:160px;width:auto;height:auto;margin-top:8px;border-radius:8px;" alt="客服二维码">
+      </p>
+    </div>
+    <button class="btn-start" onclick="location.reload()" style="font-size:14px;padding:10px 24px;">🔄 再来一局</button>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// GAME DATA
+// ============================================================
+
+const LEVELS = [
+  {
+    id: 1, bg: 'images/hongdingshan.jpg.jpg',
+    name: '洪顶山摩崖刻经',
+    icon: '🏔️',
+    location: '东平县',
+    npc: { name: '书法爱好者', type: '👤 书法爱好者', avatar: '🧔' },
+    dialogues: [
+      {
+        q: '老板，你这鹅腿上面怎么刻着字呢？写的是……"鸭"？',
+        choices: [
+          { text: '"那是僧安道壹的魏碑体，你不懂。这是『鹅』字的北朝俗写。"', tag: 'lie', money: 18, suspicion: 18 },
+          { text: '"……好吧，刻错了，应该是『鹅』字但师傅刻成了『鸭』。哎谁知道呢？说不定风化了，认错了啊。"', tag: 'honest', money: 5, suspicion: 0 },
+          { text: '"你盯着腿看那么仔细干嘛，趁热吃！看你也是个懂书法的人——你觉得这刻工像不像洪顶山的笔法？"', tag: 'dodge', money: 12, suspicion: 5 }
+        ]
+      },
+      {
+        q: '我怎么吃着这肉有一股塘边儿的味道？跟鹅的味儿不太一样啊？',
+        choices: [
+          { text: '"这是洪范池泉水喂养的鹅！泉水你懂吗？喝了能延年益寿，鹅喝了更香。"', tag: 'lie', money: 20, suspicion: 20 },
+          { text: '"……可能腌料放多了。我给你便宜两块钱。"', tag: 'honest', money: 3, suspicion: 5 },
+          { text: '"你是第 100 个这么说的——哎对了，你知道这旁边的洪顶山刻经是北齐的吗？僧安道壹你知道不？"', tag: 'dodge', money: 10, suspicion: 8 }
+        ]
+      },
+      {
+        q: '16 块钱一只，你怎么不去抢？鹅腿在百大也就这个价吧？',
+        choices: [
+          { text: '"百大鹅腿那是普通鹅腿，我这是僧安道壹开过光的文化鹅腿。"', tag: 'lie', money: 15, suspicion: 15 },
+          { text: '"……行吧，扫码还是现金？我给你打八折。"', tag: 'honest', money: 5, suspicion: 0 },
+          { text: '"16 块你还嫌贵？你爬洪顶山看刻经要不要门票？我这摊是唯一补给点。"', tag: 'dodge', money: 10, suspicion: 3 }
+        ]
+      }
+    ],
+    evidence: [
+      { icon: '⛰️', name: '刻着"鸭"字的石头', desc: '石头背面赫然刻着一个楷体"鸭"字，旁边还有"安道壹"的落款……等一下，安道壹刻石头什么时候用简化字了？', game: 'tap' },
+      { icon: '🧾', name: '鸭腿进货单', desc: '××农贸市场·鸭腿批发·量大从优·4.75元/斤。备注栏写着：客户要求去掉"鸭"字包装。', game: 'drag' },
+      { icon: '📱', name: '微信群聊天记录', desc: '鸭腿大叔群里发的："从今天起鹅腿改名叫大叔烤的辣腿，都别在群里说鹅和鸭的事，谁问就说不吃滚出去。"', game: 'sequence' },
+      { icon: '🐤', name: '一撮可疑的羽毛', desc: 'DNA检测结果显示：绿头鸭(Anas platyrhynchos)。鸭腿大叔："这是……基因突变的鹅。"', game: 'tap' }
+    ]
+  },
+  {
+    id: 2, bg: 'images/dongping-museum.jpg',
+    name: '东平县博物馆',
+    icon: '🏛️',
+    location: '东平县',
+    npc: { name: '考古研究员', type: '👤 考古研究员', avatar: '🔬' },
+    dialogues: [
+      {
+        q: '你这个腿骨的骨密度和形态，我在博物馆做了二十年鉴定——这分明是雁形目鸭科的骨骼结构。',
+        choices: [
+          { text: '"你鉴定的是普通鹅！我这是北齐品种，僧安道壹亲自养过的文化鹅后代。"', tag: 'lie', money: 20, suspicion: 20 },
+          { text: '"……老师您是专业的，我说实话吧——进货的时候确实叫『鸭腿』。"', tag: 'honest', money: 5, suspicion: 5 },
+          { text: '"雁形目鸭科？那跟鹅不是亲戚吗！说起来，东平县博物馆的汉代陶厨房你见过没？那里面也有家禽。"', tag: 'dodge', money: 12, suspicion: 6 }
+        ]
+      },
+      {
+        q: '我看你这摊位旁边就是博物馆，你这腿不会是从博物馆化石区拿的吧？',
+        choices: [
+          { text: '"对，这是新出土的『北齐鹅腿化石』，国家一级文物同款味道。"', tag: 'lie', money: 18, suspicion: 18 },
+          { text: '"怎么可能，博物馆有监控的。这是冷链运输过来的新鲜……食材。"', tag: 'honest', money: 8, suspicion: 3 },
+          { text: '"哈哈哈你真会开玩笑！说到博物馆，里面那个唐代陶马你看了吗？那马的腿才叫粗呢！"', tag: 'dodge', money: 10, suspicion: 5 }
+        ]
+      },
+      {
+        q: '老板，你老实说吧——这到底是什么腿？我不举报你，我就想知道我吃的是什么。',
+        choices: [
+          { text: '"这是平阴特产『走地鹅』，因为天天爬洪顶山，肉质紧实，长得像鸭。"', tag: 'lie', money: 15, suspicion: 15 },
+          { text: '"……鸭腿。但你看我摊名叫鹅腿大叔都十几年了，我也不容易。"', tag: 'honest', money: 5, suspicion: 10 },
+          { text: '"吃起来开心不就完了？对了，你知道东平博物馆里有多少藏品吗？一万七千多件！这腿也有历史了。"', tag: 'dodge', money: 10, suspicion: 5 }
+        ]
+      }
+    ],
+    evidence: [
+      { icon: '🦴', name: '鸭腿骨鉴定报告', desc: '东平县博物馆出具的骨骼鉴定报告，结论栏写着：Anas platyrhynchos domestica（家鸭）。报告下角盖着"机密"红章。', game: 'drag' },
+      { icon: '📋', name: '供货商合同', desc: '甲方：鸭腿大叔。乙方：××鸭场。合同第一条：乙方需将鸭腿在包装上标注为"鹅腿原料"，额外加收加工费。', game: 'drag' },
+      { icon: '🍗', name: '冷冻鸭腿样品', desc: '包装袋上写着"白羽鸭腿 冷冻"，被大叔用马克笔划掉，手写改成了"走地鹅腿 新鲜"。', game: 'tap' }
+    ]
+  },
+  {
+    id: 3, bg: 'images/yinshan.jpg',
+    name: '银山石刻',
+    icon: '🗿',
+    location: '东平县',
+    npc: { name: '丈八佛寺香客', type: '👤 虔诚香客', avatar: '🙏' },
+    dialogues: [
+      {
+        q: '阿弥陀佛，施主。佛门五戒，不杀生、不妄语。你这鹅……不对，你这腿，到底是什么？',
+        choices: [
+          { text: '"大师，这是素鹅腿！豆腐皮做的，加了鸭……不是，加了香料，做得跟真的一样。"', tag: 'lie', money: 18, suspicion: 18 },
+          { text: '"……佛祖面前我说实话——是鸭腿，但三净肉嘛，我没杀、没见我杀、没为我杀。"', tag: 'honest', money: 5, suspicion: 5 },
+          { text: '"大师你是来银山看石刻的吧？咱银山上的北齐浅石窟造像可精彩了，而且平时可没机会开门！看完造像再说腿的事儿。"', tag: 'dodge', money: 10, suspicion: 8 }
+        ]
+      },
+      {
+        q: '这鹅腿……我吃着怎么感觉像是下了水的？鸭子才游水，鹅在岸上啊。',
+        choices: [
+          { text: '"银山这边的鹅就是水陆两栖的，你不信去丈八佛寺的池塘看看，都是这种新型鹅。"', tag: 'lie', money: 20, suspicion: 20 },
+          { text: '"它生前可能……比较喜欢游泳。鹅也有游泳的爱好，正常。"', tag: 'honest', money: 8, suspicion: 3 },
+          { text: '"你有没有找到银山那处僧安道壹的刻字？『佛说摩诃般若波罗密』，据说就在这附近——我们一会可以一起去看看。"', tag: 'dodge', money: 12, suspicion: 5 }
+        ]
+      },
+      {
+        q: '造孽啊！我信佛的人，你让我吃鸭肉却骗我是鹅肉？这是妄语！',
+        choices: [
+          { text: '"不妄语，鹅和鸭在大乘佛教看来都是众生平等，吃鹅吃鸭都一样，不存在欺骗。"', tag: 'lie', money: 15, suspicion: 15 },
+          { text: '"阿弥陀佛，鸭子也是众生，我帮它修行圆满了——它现在在你肚子里继续修行。"', tag: 'honest', money: 5, suspicion: 10 },
+          { text: '"大师息怒！我知道银山有个很隐秘的石窟造像，一般人找不到，我告诉你怎么走，就当赔罪？"', tag: 'dodge', money: 10, suspicion: 3 }
+        ]
+      }
+    ],
+    evidence: [
+      { icon: '🕯️', name: '香案下的冷冻箱', desc: '佛寺遗址旁边的摊位香案下藏着一个冷冻箱，里面整整齐齐码着30只鸭腿。箱子上贴着"鹅腿专供"。', game: 'tap' },
+      { icon: '📿', name: '佛前供品标签', desc: '供品标签背面写着："鸭腿解冻后重腌，加果蔬汁烤出绿色，看起来更像纯天然绿色鹅腿。"被大叔当成废纸扔在了佛龛后面。', game: 'drag' },
+      { icon: '🐟', name: '奇怪的池塘', desc: '银山附近的池塘里，几只鸭子正在优哉游哉地游泳。大叔的合伙人正在往水里撒饲料——这是养鸭场，不是鹅场。', game: 'sequence' },
+      { icon: '💬', name: '居士群的聊天', desc: '"大叔说鹅腿卖完了，给了我一个『特制腿』，味道怎么跟上次不一样？""嘘，别说，好吃就行。"', game: 'sequence' }
+    ]
+  },
+  {
+    id: 4, bg: 'images/jiliangshan.jpg',
+    name: '棘梁山石刻',
+    icon: '⛰️',
+    location: '东平县',
+    npc: { name: '地方历史学者', type: '👤 地方历史学者', avatar: '📚' },
+    dialogues: [
+      {
+        q: '棘梁山上有788尊造像，儒释道三家合一。你这腿——是什么教派的？',
+        choices: [
+          { text: '"我这腿也是三教合一：鹅的品格、鸭的价格、鸡的分量。儒释道全兼容。"', tag: 'lie', money: 20, suspicion: 18 },
+          { text: '"……教派不重要，好吃就行。你要辣的还是不辣的？"', tag: 'honest', money: 8, suspicion: 3 },
+          { text: '"你知道棘梁山山顶最高的那尊北齐大佛有多高吗？7.5米！你爬上去看了吗？那才叫震撼！"', tag: 'dodge', money: 10, suspicion: 5 }
+        ]
+      },
+      {
+        q: '这山上有480多尊佛像盯着你呢，你敢对着佛像说你卖的是鹅腿吗？',
+        choices: [
+          { text: '"敢！鸭腿大叔对着释迦牟尼、孔子、老子三方神明起誓：这就是鹅腿，否则让我摊子被端。"', tag: 'lie', money: 18, suspicion: 22 },
+          { text: '"……480尊佛像，我不敢。但你吃都吃了，这会儿说也晚了。"', tag: 'honest', money: 5, suspicion: 0 },
+          { text: '"棘梁山最神奇的就是三教合一你知道吧？北齐时候就有了！这在中国北方是最早的——哎你看那边那尊像，像不像在对你笑？"', tag: 'dodge', money: 12, suspicion: 8 }
+        ]
+      },
+      {
+        q: '你知道为什么僧安道壹跑到这山上刻经吗？我觉得他要是知道你在他的刻经旁边卖假鹅腿……',
+        choices: [
+          { text: '"僧安道壹一定理解我，他也是走南闯北在各山上『刻东西』的人，跟我在各山摆摊异曲同工。"', tag: 'lie', money: 15, suspicion: 15 },
+          { text: '"你说得对。他刻经文我刻鸭腿，他追求的是精神境界，我追求的是……营业额境界。反正这俩境界都很有突破空间。"', tag: 'honest', money: 5, suspicion: 10 },
+          { text: '"僧安道壹在棘梁山顶也留了刻经哦，你找到了吗？一般人根本不知道——我告诉你位置，你自己去看。"', tag: 'dodge', money: 10, suspicion: 5 }
+        ]
+      }
+    ],
+    evidence: [
+      { icon: '🗿', name: '788尊造像的第789尊', desc: '有人用泡沫板临时做了一尊"鸭腿菩萨"摆在棘梁山造像群旁边，手上托着一根鸭腿。底座刻着："供奉鸭腿大叔"。', game: 'tap' },
+      { icon: '📜', name: '山寨版刻经', desc: '棘梁山一块石头上新刻了一行字："鸭腿者，鹅腿也。鹅腿者，鸭腿也。二者一也。——僧安道壹（伪）"。字迹新鲜，墨还没干。', game: 'drag' },
+      { icon: '🛒', name: '山下一车鸭腿', desc: '棘梁山脚下停着一辆面包车，后车厢装满了冷冻鸭腿。配送单上收件人写着"鸭腿大叔棘梁山分摊"。', game: 'sequence' }
+    ]
+  },
+  {
+    id: 5, bg: 'images/wenmiao.jpg',
+    name: '平阴县博物馆（文庙）',
+    icon: '🏫',
+    location: '平阴县',
+    npc: { name: '国学教师', type: '👤 国学教师', avatar: '👨‍🏫' },
+    dialogues: [
+      {
+        q: '子曰：『人而无信，不知其可也。』你说这是鹅腿，但怎么越看越像鸭腿？',
+        choices: [
+          { text: '"子曰：『君子不器』——腿不能只看外表，要看内涵。这腿的内涵就是……鹅。"', tag: 'lie', money: 18, suspicion: 18 },
+          { text: '"孟子说『尽信书不如无书』——尽信鹅腿不如无鹅腿。鸭腿也能吃出鹅的境界。"', tag: 'honest', money: 8, suspicion: 3 },
+          { text: '"老师说得好！文庙里收藏的汉画像石你也看了吗？那上面刻的禽类，说实话我也分不出鹅和鸭——古人都不分，咱分那么清干嘛。"', tag: 'dodge', money: 12, suspicion: 5 }
+        ]
+      },
+      {
+        q: '孔子说『己所不欲，勿施于人』。你自己会花16块钱买个鸭腿吃吗？',
+        choices: [
+          { text: '"会！我每天都吃自己的鹅腿……啊不是，吃自己卖的腿。身体倍儿棒，吃啥补啥。你看我腿脚多利索，今天已经爬了两座山了。"', tag: 'lie', money: 15, suspicion: 18 },
+          { text: '"我一般不吃自己卖的东西。这叫『君子远庖厨』，懂吧？"', tag: 'honest', money: 5, suspicion: 5 },
+          { text: '"你带学生来文庙研学啊？真好！你知道文庙里有6件国家一级文物吗？我带你们看一圈？"', tag: 'dodge', money: 10, suspicion: 3 }
+        ]
+      },
+      {
+        q: '你在这文庙门口卖假鹅腿，孔老夫子在天之灵会怎么看你？',
+        choices: [
+          { text: '"孔子周游列国的时候，要是有我这腿，他也不至于『在陈绝粮』。他得感谢我。"', tag: 'lie', money: 20, suspicion: 20 },
+          { text: '"孔子说『过而不改，是谓过矣』——我明天就改，明天一定进真鹅腿。"', tag: 'honest', money: 5, suspicion: 5 },
+          { text: '"孔子也是山东人，咱山东人不骗山东人！对了，你对平阴发现的佛教造像碑感兴趣吗？就在馆里，真的值得一看。"', tag: 'dodge', money: 10, suspicion: 5 }
+        ]
+      }
+    ],
+    evidence: [
+      { icon: '📖', name: '《论语》新解手稿', desc: '鸭腿大叔亲笔手稿：『子曰：腿之不鹅，鸭亦可也。——论语·鸭腿篇』。装订成册准备发给顾客当赠品。', game: 'drag' },
+      { icon: '🏺', name: '汉代陶鸭', desc: '文庙展厅里的汉代彩陶鸭，脚边被贴了张纸条：『鸭腿大叔同款，16元一只』。博物馆工作人员正在调监控。', game: 'tap' },
+      { icon: '🗡️', name: '青铜鉴定刀', desc: '一位科技考古教授从包里掏出了便携式DNA检测仪，正蹲在文庙门口对吃剩的骨头做采样。周围围了一圈学生。', game: 'sequence' }
+    ]
+  },
+  {
+    id: 6, bg: 'images/fushengsi.jpg',
+    name: '福胜寺经幢',
+    icon: '🛕',
+    location: '平阴县玫城公园',
+    npc: { name: '念佛老太太', type: '👤 念佛老太太', avatar: '👵' },
+    dialogues: [
+      {
+        q: '小伙子啊，我在福胜寺念了三十年佛。你这鹅腿闻起来有鸭骚味，瞒不过我老太婆。',
+        choices: [
+          { text: '"奶奶您鼻子真灵！但这其实是『福胜寺秘制香料』的味道，加入十三味中药，闻起来就像鸭子——这是故意的。这是鸭腿风味鹅腿。"', tag: 'lie', money: 18, suspicion: 18 },
+          { text: '"奶奶，您念您的佛，我卖我的腿，咱俩各干各的，别互相为难行不？"', tag: 'honest', money: 8, suspicion: 5 },
+          { text: '"奶奶您在福胜寺念了三十年佛啊！那您一定知道福胜寺经幢吧？上面刻的什么经您能给我讲讲吗？"', tag: 'dodge', money: 10, suspicion: 3 }
+        ]
+      },
+      {
+        q: '你这摊子摆在寺院旁边，佛门清净之地，你敢说你用的都是真材实料？',
+        choices: [
+          { text: '"绝对真材实料！菩萨面前不打诳语——『材』是鸭……不对，是鹅的材，『料』是秘制酱料。没毛病。"', tag: 'lie', money: 15, suspicion: 20 },
+          { text: '"佛说四大皆空——鹅也是空，鸭也是空，腿也是空。奶奶您别太执着。"', tag: 'honest', money: 5, suspicion: 3 },
+          { text: '"奶奶，玫城公园里除了经幢，还有好些散落的残碑和造像呢，您都见过吗？哎，我上次还发现了一块，就在草丛里那儿……"', tag: 'dodge', money: 12, suspicion: 5 }
+        ]
+      },
+      {
+        q: '你要是骗人，来世要变鸭子的。你知道吗？',
+        choices: [
+          { text: '"变鸭子好啊！我变鸭子以后自己给自己供货，自产自销，成本更低，还不用进货。"', tag: 'lie', money: 20, suspicion: 18 },
+          { text: '"奶奶我现在干的事，要是报应的话，来世可能连鸭子都当不上……"', tag: 'honest', money: 5, suspicion: 8 },
+          { text: '"您说的对！所以我准备捐点功德——对了，福胜寺经幢是宋代的对吧？您知道它本来在哪个位置吗？"', tag: 'dodge', money: 10, suspicion: 5 }
+        ]
+      }
+    ],
+    evidence: [
+      { icon: '🐤', name: '掉落的鸭毛掸子', desc: '大叔顺手拿了一把鸭毛掸子在摊位上掸灰，结果掸子上的毛和"鹅腿"上的毛一模一样。老居士捡起来一根对光看了看。', game: 'tap' },
+      { icon: '🔔', name: '经幢下的冰袋', desc: '福胜寺经幢底座旁边藏了一个保温袋，里面是冻得硬邦邦的鸭腿。包装袋上写着"佛前供品（自用）"。', game: 'drag' },
+      { icon: '📞', name: '举报热线通话记录', desc: '老居士手机里的最近通话：12x15（已拨打）、市场监管所（通话中）、鸭腿大叔摊位定位（已分享到念佛群）。', game: 'sequence' }
+    ]
+  },
+  {
+    id: 7, bg: 'images/ergushan.jpg',
+    name: '二股山石刻',
+    icon: '🌾',
+    location: '平阴县',
+    npc: { name: '本地农民', type: '👤 本地农民', avatar: '🧑‍🌾' },
+    dialogues: [
+      {
+        q: '你这摊咋开到二股山来了？这地方连导航都找不到，四周全是我的地。你这些腿——不是我家塘里的鸭子吧？',
+        choices: [
+          { text: '"大爷您想多了，您家的鸭子天天在地里跑，肉太柴。我这是精挑细选的走地鹅，肉质不一样。"', tag: 'lie', money: 18, suspicion: 18 },
+          { text: '"……大爷您家养的是鸭子啊？我还以为是鹅呢，那塘里游的。"', tag: 'honest', money: 8, suspicion: 8 },
+          { text: '"大爷您在这住了多久了？二股山上僧安道壹的刻字您知道吗？周围田里有没有可能还有些石碑残块？"', tag: 'dodge', money: 10, suspicion: 3 }
+        ]
+      },
+      {
+        q: '我跟你说，我养了二十年鸭子。鸭腿和鹅腿我闭着眼都分得出来。你这——是鸭腿。',
+        choices: [
+          { text: '"大爷，人老了味觉会退化，真的。您吃的是鹅腿，回去多喝热水休息一下。"', tag: 'lie', money: 15, suspicion: 20 },
+          { text: '"二十年……那您确实比我有经验。要不这样，您教我养鹅，我给您分红？"', tag: 'honest', money: 5, suspicion: 5 },
+          { text: '"大爷您对二股山熟，这山上有个很隐秘的石刻您知道吗？一般人都找不到，网上连图都没有——您带我去看，这腿送您吃。"', tag: 'dodge', money: 10, suspicion: 3 }
+        ]
+      },
+      {
+        q: '你在这鸟不拉屎的地方摆摊，谁会来买？你是来销毁什么东西的吧？',
+        choices: [
+          { text: '"大爷您真是柯南附体！我销毁……销毁我的竞争对手！这片市场我先占领了。"', tag: 'lie', money: 18, suspicion: 20 },
+          { text: '"是有这个打算。这地方安静，毁东西不容易被发现。"', tag: 'honest', money: 5, suspicion: 15 },
+          { text: '"谁说没人来？那些专门寻访二股山石刻的访古人会来！虽然人少，但来了就饿，我这是精准服务。"', tag: 'dodge', money: 10, suspicion: 5 }
+        ]
+      }
+    ],
+    evidence: [
+      { icon: '🌽', name: '被鸭饲料袋包围的玉米地', desc: '大爷的玉米地旁边发现大量鸭饲料袋，上面印着"××饲料·让您的鸭子更肥"。大爷说他从没买过鸭饲料。', game: 'drag' },
+      { icon: '🕳️', name: '田间的可疑土坑', desc: '二股山脚下农田里有几个新挖的坑，旁边散落着鸭腿包装袋。大爷扛着锄头过来："你们在我的地里埋什么了？"', game: 'tap' },
+      { icon: '🐔', name: '举报的大公鸡', desc: '大爷抱着一只大公鸡来："我家这鸡都不吃你家扔的骨头——鸡都不吃的腿，你敢卖给人吃？"', game: 'sequence' }
+    ]
+  },
+  {
+    id: 8, bg: 'images/tianchishan.jpg',
+    name: '天池山石刻',
+    icon: '🌊',
+    location: '平阴县洪范池镇',
+    npc: { name: '访古爱好者', type: '👤 访古爱好者', avatar: '🎨' },
+    dialogues: [
+      {
+        q: '书院泉的水在流，你手里的腿在抖。摊主，你对这山水发个誓——这是鹅腿吗？',
+        choices: [
+          { text: '"以书院泉之名起誓：如果这不是鹅腿，就让泉水倒流，让僧安道壹的刻字消失，让唐代石窟里的佛像……掉色。虽说这色早就掉光了吧……"', tag: 'lie', money: 20, suspicion: 20 },
+          { text: '"你这么诗意地质问我，我有点不好意思骗你了。这是鸭腿。但书院泉水煮的鸭腿，不比鹅腿差！"', tag: 'honest', money: 8, suspicion: 5 },
+          { text: '"你对天池山很了解啊！那山上的唐代石窟浅龛造像你看了吗？还有僧安道壹的石刻——你是专门来寻访的吗？"', tag: 'dodge', money: 12, suspicion: 5 }
+        ]
+      },
+      {
+        q: '我写了一首诗发到网上："天池山下鹅腿香，一口咬出鸭的汤。"现在已经5000赞了。',
+        choices: [
+          { text: '"删了！我给你免单！不——我给你终身免单！快把诗删了！"', tag: 'lie', money: 5, suspicion: 20 },
+          { text: '"5000赞……我靠。那你能不能在评论区补一句『其实是鹅腿，作者笔误』？"', tag: 'honest', money: 3, suspicion: 10 },
+          { text: '"你诗人啊！太好了，你帮我在天池山石刻旁边写一首《鹅腿赋》吧，以诗证鹅，流芳百世。"', tag: 'dodge', money: 10, suspicion: 8 }
+        ]
+      },
+      {
+        q: '我已经打了12x15。他们正在来的路上。你还有什么要说的吗？',
+        choices: [
+          { text: '"你打12x15？我打了12x45！我说有个诗人在天池山乱刻乱画破坏文物！看谁先被抓！"', tag: 'lie', money: 10, suspicion: 25 },
+          { text: '"……没什么要说的了。能让我最后再卖一个腿吗？就一个。"', tag: 'honest', money: 3, suspicion: 5 },
+          { text: '"在12x15来之前——你还没告诉我，天池山的唐代石窟你找到没有？它藏得很深，我可以告诉你位置。"', tag: 'dodge', money: 8, suspicion: 5 }
+        ]
+      }
+    ],
+    evidence: [
+      { icon: '📝', name: '商业计划书', desc: '《鸭腿大叔全国连锁计划》：在8个景点试点成功后，向全国石窟寺景区推广"文化鹅腿"概念。目标：三年内在所有全国重点文保单位门口开设分摊。', game: 'drag' },
+      { icon: '🚱', name: '书院泉里的鸭腿', desc: '不知是谁把没卖完的鸭腿倒进了书院泉里。泉边立了个牌子："泉水已污染，暂时不宜饮用。——鸭腿大叔（手写）"。', game: 'tap' },
+      { icon: '🚓', name: '市场监管局执法车', desc: '天池山脚下停着两辆执法车。一名执法人员对着对讲机说："目标确认，在天池山石刻旁边摆摊，准备行动。"倒计时30秒。', game: 'sequence' }
+    ]
+  }
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let state = {
+  level: 0,
+  money: 0,
+  suspicion: 0,
+  totalDestroyed: 0,
+  totalMissed: 0,
+  levelDestroyed: 0,
+  levelMissed: 0,
+  dialogueRound: 0,
+  phase: 'dialogue',
+  collected: [],
+  evidenceQueue: [],
+  evidenceTimer: null,
+  currentEvidenceIdx: 0,
+  lives: 3,
+  difficulty: 1.0,
+  eventsFired: [],
+  anyEventFired: false,
+  _levelEventTriggered: false
+};
+
+// Difficulty curve per level
+function getDifficulty(lv) {
+  if (lv <= 2) return 1.0;
+  if (lv <= 5) return 1.3;
+  return 1.6;
+}
+
+// ============================================================
+// SCREEN MANAGEMENT
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ============================================================
+// GAME FLOW
+// ============================================================
+function startGame() {
+  state = {
+    level: 0,
+    money: 0,
+    suspicion: 0,
+    totalDestroyed: 0,
+    totalMissed: 0,
+    levelDestroyed: 0,
+    levelMissed: 0,
+    dialogueRound: 0,
+    phase: 'dialogue',
+    collected: [],
+    evidenceQueue: [],
+    evidenceTimer: null,
+    currentEvidenceIdx: 0,
+    lives: 3,
+    difficulty: 1.0,
+    eventsFired: [],
+    anyEventFired: false,
+    _levelEventTriggered: false
+  };
+  showScreen('screen-game');
+  loadLevel();
+}
+
+function loadLevel() {
+  const lv = LEVELS[state.level];
+  state.dialogueRound = 0;
+  // suspicion NO LONGER resets — accumulates across levels
+  state.levelDestroyed = 0;
+  state.levelMissed = 0;
+  state.phase = 'dialogue';
+  state.currentEvidenceIdx = 0;
+  state.difficulty = getDifficulty(state.level);
+  state._levelEventTriggered = false;
+  state.evidenceQueue = [...lv.evidence];
+  updateSuspicionUI();
+  document.getElementById('lives-display').textContent = '❤️'.repeat(state.lives) + '🖤'.repeat(3 - state.lives);
+
+  document.getElementById('level-badge').textContent = `第 ${lv.id} 关`;
+  document.getElementById('location-name').textContent = lv.location;
+  document.getElementById('scene-icon').textContent = lv.icon;
+  document.getElementById('scene-name').textContent = lv.name;
+  document.getElementById('npc-type').textContent = `${lv.npc.avatar} ${lv.npc.type}`;
+  document.getElementById('npc-name').textContent = lv.npc.name;
+  document.getElementById('game-hint').textContent = '💡 选一个回答蒙混过关';
+
+  document.getElementById('dialogue-area').style.display = 'flex';
+  document.getElementById('evidence-area').style.display = 'none';
+  document.getElementById('evidence-results').innerHTML = '';
+  document.getElementById('money-display').textContent = `¥${state.money}`;
+  updateSuspicionUI();
+
+  // Per-level background image (set on #app so it shows behind the card)
+  const app = document.getElementById('app');
+  if (lv.bg) {
+    app.style.background = `linear-gradient(rgba(245,240,232,0.50), rgba(245,240,232,0.50)), url(${lv.bg}) center/cover`;
+  } else {
+    app.style.background = '';
+  }
+
+  showDialogue();
+}
+
+// Random events — trigger when suspicion is high mid-dialogue
+const RANDOM_EVENTS = [
+  {
+    icon: '📸',
+    desc: '突然有个游客举起手机对着你的摊位拍照！嘴里还说着"我要发小绿书"……',
+    q: '怎么办？',
+    choices: [
+      { text: '"拍什么拍！侵犯我商业机密！"（一把抢过手机）', suspicion: 20, money: 0, tag: 'lie' },
+      { text: '"欢迎拍照打卡！记得艾特我@鸭腿大叔官方旗舰店。"（强装镇定）', suspicion: 5, money: 8, tag: 'dodge' },
+      { text: '"别拍了，我给你免单，你把照片删了吧。"', suspicion: 0, money: -10, tag: 'honest' }
+    ]
+  },
+  {
+    icon: '👮',
+    desc: '远处走来一个穿制服的人，边走边看手机上的照片，又抬头看了看你的摊位……',
+    q: '怎么应对？',
+    choices: [
+      { text: '"城管来了！收摊跑路！"（手忙脚乱开始打包）', suspicion: 25, money: 0, tag: 'lie' },
+      { text: '"您好，要来一只鹅腿吗？我们是正规摊位，有健康证的。"（心虚递腿）', suspicion: 10, money: 5, tag: 'dodge' },
+      { text: '"他不是来找我的……不是来找我的……"（低头假装玩手机）', suspicion: 5, money: 0, tag: 'honest' }
+    ]
+  },
+  {
+    icon: '🧐',
+    desc: '一个戴着眼镜的人蹲下来仔细端详你的原材料，然后掏出一个放大镜……',
+    q: '这人什么来头？',
+    choices: [
+      { text: '"看什么看！这是商业机密！"（把腿全部藏到身后）', suspicion: 20, money: 0, tag: 'lie' },
+      { text: '"您眼光真好！这是今天刚到的……呃……果蔬汁腌制的优质绿色禽类腿肉。"', suspicion: 8, money: 8, tag: 'dodge' },
+      { text: '"您是食品检测的吗？如果是的话我现在就收摊。"', suspicion: 3, money: -5, tag: 'honest' }
+    ]
+  },
+  {
+    icon: '🟢',
+    desc: '一个顾客咬了一口腿，脸色大变——"老板……这腿怎么是绿的？！还一股馊味！"',
+    q: '周围的人都看过来了……',
+    choices: [
+      { text: '"这是葱汁腌的！大葱汁！纯天然绿色食品！你不懂，越绿越健康，闻着馊那是发酵风味。"（边说边把腿往身后藏）', suspicion: 22, money: 5, tag: 'lie' },
+      { text: '"啊这个……其实是绿皮火车汁加多了……再加上果蔬酵素……总之不是坏的，你别慌。"', suspicion: 10, money: 8, tag: 'dodge' },
+      { text: '"……坏了。别吃了，我退你钱。不过千万别发网上，求你了。"', suspicion: 0, money: -12, tag: 'honest' }
+    ]
+  }
+];
+
+function triggerRandomEvent() {
+  const available = RANDOM_EVENTS.filter((_, i) => !state.eventsFired.includes(i));
+  if (available.length === 0) {
+    // All 4 events already used — just continue
+    return;
+  }
+  const idx = Math.floor(Math.random() * available.length);
+  const evt = available[idx];
+  state.eventsFired.push(RANDOM_EVENTS.indexOf(evt));
+  state._currentEvent = evt;
+
+  // Distinct UI for random events
+  const dialogueArea = document.getElementById('dialogue-area');
+  dialogueArea.style.border = '2px solid #e74c3c';
+  dialogueArea.style.borderRadius = '12px';
+  dialogueArea.style.padding = '12px';
+  dialogueArea.style.background = 'rgba(231,76,60,0.08)';
+  dialogueArea.style.animation = 'pulse 0.8s ease 3';
+
+  document.getElementById('npc-text').innerHTML = `<span style="font-size:16px;color:#e74c3c;font-weight:bold;">⚡ 突发！${evt.icon}</span><br><span style="color:#e74c3c;">${evt.desc}</span><br><br><strong>${evt.q}</strong>`;
+  document.getElementById('game-hint').textContent = '⚡ 突发事件！快去应对！';
+  document.getElementById('game-hint').style.color = '#e74c3c';
+
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = evt.choices.map((c, i) => {
+    const tagLabel = c.tag === 'lie' ? '离谱' : c.tag === 'honest' ? '老实' : '转移';
+    const tagClass = c.tag === 'lie' ? 'tag-lie' : c.tag === 'honest' ? 'tag-honest' : 'tag-dodge';
+    const emoji = c.tag === 'lie' ? '😈' : c.tag === 'honest' ? '😐' : '😏';
+    return `<button class="choice-btn" style="border-color:rgba(231,76,60,.3);" onclick="resolveEvent(${i})">
+      <span class="tag ${tagClass}">${emoji} ${tagLabel}</span>${c.text}
+    </button>`;
+  }).join('');
+}
+
+function resolveEvent(idx) {
+  const event = state._currentEvent || RANDOM_EVENTS[0];
+  const c = event.choices[idx];
+  state.money += c.money;
+  if (state.money < 0) state.money = 0;
+  const gain = Math.round(c.suspicion * state.difficulty);
+  state.suspicion = Math.min(100, state.suspicion + gain);
+  document.getElementById('money-display').textContent = `¥${state.money}`;
+  updateSuspicionUI();
+
+  // Restore normal dialogue UI
+  const dialogueArea = document.getElementById('dialogue-area');
+  dialogueArea.style.border = '';
+  dialogueArea.style.borderRadius = '';
+  dialogueArea.style.padding = '';
+  dialogueArea.style.background = '';
+  dialogueArea.style.animation = '';
+  document.getElementById('game-hint').textContent = '💡 选一个回答蒙混过关';
+  document.getElementById('game-hint').style.color = '';
+
+  if (state.suspicion >= 100) {
+    loseLife('突发事件中被当场拆穿！');
+    return;
+  }
+
+  // Do NOT increment dialogueRound — event is extra, doesn't consume normal rounds
+  // Continue where we left off
+  const lv = LEVELS[state.level];
+  if (state.dialogueRound >= lv.dialogues.length) {
+    startEvidencePhase();
+  } else {
+    showDialogue();
+  }
+}
+
+function showDialogue() {
+  const lv = LEVELS[state.level];
+  const d = lv.dialogues[state.dialogueRound];
+  document.getElementById('npc-text').textContent = d.q;
+
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = d.choices.map((c, i) => {
+    const tagLabel = c.tag === 'lie' ? '离谱' : c.tag === 'honest' ? '老实' : '转移';
+    const tagClass = c.tag === 'lie' ? 'tag-lie' : c.tag === 'honest' ? 'tag-honest' : 'tag-dodge';
+    const emoji = c.tag === 'lie' ? '😈' : c.tag === 'honest' ? '😐' : '😏';
+    return `<button class="choice-btn" onclick="pickChoice(${i})">
+      <span class="tag ${tagClass}">${emoji} ${tagLabel}</span>${c.text}
+    </button>`;
+  }).join('');
+}
+
+function pickChoice(idx) {
+  const lv = LEVELS[state.level];
+  const d = lv.dialogues[state.dialogueRound];
+  const c = d.choices[idx];
+
+  state.money += c.money;
+  // Apply difficulty multiplier to suspicion gain
+  const suspicionGain = Math.round(c.suspicion * state.difficulty);
+  state.suspicion = Math.min(100, state.suspicion + suspicionGain);
+  document.getElementById('money-display').textContent = `¥${state.money}`;
+  updateSuspicionUI();
+
+  // Check if suspicion reached 100 → lose a life
+  if (state.suspicion >= 100) {
+    loseLife('顾客当场拆穿了你！');
+    return;
+  }
+
+  state.dialogueRound++;
+
+  // Random event logic:
+  // - After round 2, if suspicion > 40 and no event this level → chance to trigger
+  // - By level 2, if still no event fired ever → force trigger
+  // - Each event fires at most once per game
+  const shouldForce = !state.anyEventFired && state.level >= 0 && state.dialogueRound === 2;
+  const shouldChance = state.dialogueRound === 2 && state.suspicion > 35 && !state._levelEventTriggered && state.eventsFired.length < RANDOM_EVENTS.length;
+
+  if (shouldForce || shouldChance) {
+    state._levelEventTriggered = true;
+    state.anyEventFired = true;
+    triggerRandomEvent();
+    return;
+  }
+
+  if (state.dialogueRound >= lv.dialogues.length) {
+    startEvidencePhase();
+  } else {
+    showDialogue();
+  }
+}
+
+function loseLife(reason) {
+  clearInterval(state.evidenceTimer);
+  state.lives--;
+  document.getElementById('lives-display').textContent = '❤️'.repeat(state.lives) + '🖤'.repeat(3 - state.lives);
+
+  if (state.lives <= 0) {
+    gameOver(reason);
+    return;
+  }
+
+  // Skip to next level — flash screen briefly
+  const lv = LEVELS[state.level];
+  const resultsEl = document.getElementById('evidence-results');
+  if (resultsEl) {
+    resultsEl.innerHTML += `<div class="evidence-result found" style="border:1px solid #e74c3c;">💀 ${reason}<br>丢掉一条命，逃往下一个景点！</div>`;
+  }
+
+  setTimeout(() => {
+    state.level++;
+    if (state.level >= LEVELS.length) {
+      showEnding();
+    } else {
+      showScreen('screen-game');
+      loadLevel();
+    }
+  }, 1200);
+}
+
+function gameOver(reason) {
+  clearInterval(state.evidenceTimer);
+  document.getElementById('gameover-reason').textContent = reason;
+  document.getElementById('gameover-stats').innerHTML = `
+    到达关卡：第 ${state.level + 1} 关 ${LEVELS[state.level].name}<br>
+    总收入：💰 ¥${state.money}<br>
+    销毁证据：✅ ${state.totalDestroyed} 个
+  `;
+  showScreen('screen-gameover');
+}
+
+function updateSuspicionUI() {
+  document.getElementById('suspicion-display').textContent = `${state.suspicion}%`;
+  const fill = document.getElementById('suspicion-fill');
+  fill.style.width = state.suspicion + '%';
+  fill.className = 'suspicion-fill';
+  if (state.suspicion >= 70) fill.classList.add('danger');
+  else if (state.suspicion >= 40) fill.classList.add('warn');
+}
+
+function startEvidencePhase() {
+  state.phase = 'evidence';
+  state.currentEvidenceIdx = 0;
+  document.getElementById('dialogue-area').style.display = 'none';
+  document.getElementById('evidence-area').style.display = 'flex';
+  document.getElementById('evidence-results').innerHTML = '';
+
+  // Evidence count based on suspicion
+  const allEvidence = LEVELS[state.level].evidence;
+  let count;
+  if (state.suspicion < 30) count = Math.min(2, allEvidence.length);
+  else if (state.suspicion < 60) count = Math.min(3, allEvidence.length);
+  else count = allEvidence.length;
+
+  // Pick 'count' evidence items (prefer variety, pick first N for simplicity)
+  // Shuffle and pick
+  const shuffled = [...allEvidence].sort(() => Math.random() - 0.5);
+  state.evidenceQueue = shuffled.slice(0, count);
+
+  showNextEvidence();
+}
+
+function getEvidenceTime() {
+  const baseTime = 6000;
+  const minTime = 2500;
+  return Math.max(minTime, baseTime - (state.suspicion / 100) * (baseTime - minTime));
+}
+
+function startTimer(onTimeout) {
+  const timeMs = getEvidenceTime();
+  const timeSec = timeMs / 1000;
+  const timerEl = document.getElementById('evidence-timer');
+  timerEl.textContent = `⏱ ${timeSec.toFixed(1)}s`;
+  timerEl.className = 'timer';
+
+  let remaining = timeMs;
+  const startTime = Date.now();
+  clearInterval(state.evidenceTimer);
+  state.evidenceTimer = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    remaining = timeMs - elapsed;
+    if (remaining <= 0) {
+      clearInterval(state.evidenceTimer);
+      if (onTimeout) onTimeout();
+    } else {
+      const sec = remaining / 1000;
+      timerEl.textContent = `⏱ ${sec.toFixed(1)}s`;
+      if (sec < 1.5) timerEl.classList.add('urgent');
+    }
+  }, 100);
+}
+
+function showNextEvidence() {
+  if (state.currentEvidenceIdx >= state.evidenceQueue.length) {
+    finishLevel();
+    return;
+  }
+
+  const ev = state.evidenceQueue[state.currentEvidenceIdx];
+  document.getElementById('evidence-name').textContent = ev.name;
+  document.getElementById('evidence-timer').className = 'timer';
+
+  const gameArea = document.getElementById('evidence-game');
+  const hint = document.getElementById('evidence-game-hint');
+  const hintText = document.getElementById('game-hint');
+
+  switch (ev.game) {
+    case 'tap':
+      hintText.textContent = '👆 猛点图标！在倒计时结束前打碎它！';
+      startTapGame(ev, gameArea, hint);
+      break;
+    case 'drag':
+      hintText.textContent = '👆 把证据拖到右边的垃圾桶里！';
+      startDragGame(ev, gameArea, hint);
+      break;
+    case 'sequence':
+      hintText.textContent = '👆 按顺序点数字！1→2→3→4';
+      startSequenceGame(ev, gameArea, hint);
+      break;
+    default:
+      // fallback to tap
+      hintText.textContent = '👆 猛点图标销毁证据！';
+      startTapGame(ev, gameArea, hint);
+  }
+}
+
+// ===== TAP GAME =====
+function startTapGame(ev, area, hint) {
+  const tapsNeeded = 10;
+  const fixedTimerMs = 2000; // 2 seconds, fixed regardless of suspicion
+  let taps = 0;
+  area.innerHTML = `
+    <div class="tap-target" id="tap-target">${ev.icon}</div>
+    <div class="tap-count" id="tap-count">0 / ${tapsNeeded}</div>
+    <div class="tap-progress"><div class="tap-progress-fill" id="tap-fill"></div></div>
+  `;
+  hint.textContent = `猛点！${(fixedTimerMs/1000).toFixed(1)}秒内连击${tapsNeeded}下！`;
+
+  const target = document.getElementById('tap-target');
+  const countEl = document.getElementById('tap-count');
+  const fillEl = document.getElementById('tap-fill');
+
+  function onTap(e) {
+    e.preventDefault();
+    taps++;
+    countEl.textContent = `${taps} / ${tapsNeeded}`;
+    fillEl.style.width = `${(taps / tapsNeeded) * 100}%`;
+    target.classList.add('tapped');
+    setTimeout(() => target.classList.remove('tapped'), 50);
+    if (taps >= tapsNeeded) {
+      clearInterval(state.evidenceTimer);
+      target.style.pointerEvents = 'none';
+      target.style.transform = 'scale(0.3)';
+      target.style.opacity = '0.3';
+      target.style.transition = 'all 0.3s';
+      destroyEvidence();
+    }
+  }
+  target.addEventListener('pointerdown', onTap);
+  target._cleanup = () => { target.removeEventListener('pointerdown', onTap); target.style.pointerEvents = 'none'; };
+
+  // Fixed timer for tap game
+  const timerEl = document.getElementById('evidence-timer');
+  timerEl.textContent = '⏱ 2.0s';
+  timerEl.className = 'timer';
+  let remaining = fixedTimerMs;
+  clearInterval(state.evidenceTimer);
+  state.evidenceTimer = setInterval(() => {
+    remaining -= 50;
+    if (remaining <= 0) {
+      clearInterval(state.evidenceTimer);
+      if (target._cleanup) target._cleanup();
+      evidenceFound();
+    } else {
+      const sec = remaining / 1000;
+      timerEl.textContent = `⏱ ${sec.toFixed(1)}s`;
+      if (sec < 0.5) timerEl.classList.add('urgent');
+    }
+  }, 50);
+}
+
+// ===== DRAG GAME =====
+function startDragGame(ev, area, hint) {
+  area.innerHTML = `
+    <div class="drag-area" id="drag-area">
+      <div class="drag-target" id="drag-target" style="left:20px;">${ev.icon}</div>
+      <div class="drag-zone" id="drag-zone" style="right:20px;">🗑️</div>
+    </div>
+  `;
+  hint.textContent = '拖拽证据到垃圾桶！';
+
+  const target = document.getElementById('drag-target');
+  const zone = document.getElementById('drag-zone');
+  const dragArea = document.getElementById('drag-area');
+  let dragging = false, startX = 0, startY = 0, offsetX = 0, offsetY = 0;
+
+  function onStart(e) {
+    e.preventDefault();
+    dragging = true;
+    target.classList.add('grabbed');
+    const pt = e.touches ? e.touches[0] : e;
+    const rect = target.getBoundingClientRect();
+    offsetX = pt.clientX - rect.left;
+    offsetY = pt.clientY - rect.top;
+    startX = rect.left;
+    startY = rect.top;
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const pt = e.touches ? e.touches[0] : e;
+    const areaRect = dragArea.getBoundingClientRect();
+    const x = pt.clientX - areaRect.left - offsetX;
+    const y = pt.clientY - areaRect.top - offsetY;
+    target.style.left = x + 'px';
+    target.style.top = y + 'px';
+
+    // Check overlap with trash zone
+    const tRect = target.getBoundingClientRect();
+    const zRect = zone.getBoundingClientRect();
+    const overlap = !(tRect.right < zRect.left || tRect.left > zRect.right ||
+                      tRect.bottom < zRect.top || tRect.top > zRect.bottom);
+    if (overlap) {
+      zone.classList.add('highlight');
+      // Drop! Destroy!
+      dragging = false;
+      clearInterval(state.evidenceTimer);
+      target.style.transition = 'all 0.3s';
+      target.style.left = zone.style.right || 'auto';
+      target.style.opacity = '0';
+      target.style.transform = 'scale(0.2)';
+      zone.style.transform = 'scale(1.3)';
+      destroyEvidence();
+      cleanup();
+    } else {
+      zone.classList.remove('highlight');
+    }
+  }
+
+  function onEnd() {
+    if (dragging) {
+      dragging = false;
+      target.classList.remove('grabbed');
+      // Snap back
+      target.style.transition = 'all 0.3s';
+      target.style.left = '20px';
+      target.style.top = '50%';
+      zone.classList.remove('highlight');
+      setTimeout(() => { target.style.transition = 'none'; }, 300);
+    }
+  }
+
+  function cleanup() {
+    target.removeEventListener('pointerdown', onStart);
+    target.removeEventListener('touchstart', onStart);
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('pointerup', onEnd);
+    document.removeEventListener('touchend', onEnd);
+  }
+
+  target.addEventListener('pointerdown', onStart);
+  target.addEventListener('touchstart', onStart, { passive: false });
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('pointerup', onEnd);
+  document.addEventListener('touchend', onEnd);
+  target._cleanup = cleanup;
+
+  // Fixed 1.5s timer for drag game
+  const dragTimerMs = 1500;
+  const dragTimerEl = document.getElementById('evidence-timer');
+  dragTimerEl.textContent = '⏱ 1.5s';
+  dragTimerEl.className = 'timer';
+  let dragRemaining = dragTimerMs;
+  clearInterval(state.evidenceTimer);
+  state.evidenceTimer = setInterval(() => {
+    dragRemaining -= 50;
+    if (dragRemaining <= 0) {
+      clearInterval(state.evidenceTimer);
+      if (target._cleanup) target._cleanup();
+      evidenceFound();
+    } else {
+      const sec = dragRemaining / 1000;
+      dragTimerEl.textContent = `⏱ ${sec.toFixed(1)}s`;
+      if (sec < 0.5) dragTimerEl.classList.add('urgent');
+    }
+  }, 50);
+}
+
+// ===== SEQUENCE GAME =====
+function startSequenceGame(ev, area, hint) {
+  const count = 4;
+  // Generate 4 unique random numbers between 1 and 100000
+  const nums = new Set();
+  while (nums.size < count) {
+    nums.add(Math.floor(Math.random() * 100000) + 1);
+  }
+  const numArr = [...nums];
+  const sorted = [...numArr].sort((a, b) => a - b); // correct ascending order
+  let sortIdx = 0; // which element in sorted[] is expected next
+
+  // Shuffle display positions
+  const displayOrder = [...Array(count).keys()];
+  for (let i = displayOrder.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [displayOrder[i], displayOrder[j]] = [displayOrder[j], displayOrder[i]];
+  }
+
+  area.innerHTML = `
+    <div class="seq-area" id="seq-area">
+      ${displayOrder.map(di => {
+        const n = numArr[di];
+        return `<button class="seq-btn" data-num="${n}" style="font-size:14px;width:auto;min-width:52px;padding:0 8px;">${n.toLocaleString()}</button>`;
+      }).join('')}
+    </div>
+    <div class="seq-hint" id="seq-hint">从小到大点击！下一个最小数 → ${sorted[0].toLocaleString()}</div>
+  `;
+  hint.textContent = '从小到大排序点击！';
+
+  const buttons = document.querySelectorAll('.seq-btn');
+  const seqHint = document.getElementById('seq-hint');
+
+  function onBtnClick(e) {
+    const btn = e.currentTarget;
+    const num = parseInt(btn.dataset.num);
+    if (btn.classList.contains('done')) return;
+
+    if (num === sorted[sortIdx]) {
+      btn.classList.add('done');
+      sortIdx++;
+      if (sortIdx >= count) {
+        clearInterval(state.evidenceTimer);
+        buttons.forEach(b => { b.style.pointerEvents = 'none'; b.style.opacity = '0.5'; });
+        destroyEvidence();
+      } else {
+        seqHint.textContent = `下一个最小数 → ${sorted[sortIdx].toLocaleString()}`;
+      }
+    } else {
+      btn.classList.add('wrong');
+      setTimeout(() => btn.classList.remove('wrong'), 300);
+      // Reset
+      sortIdx = 0;
+      buttons.forEach(b => b.classList.remove('done'));
+      seqHint.textContent = `❌ 错了！请从最小的开始 → ${sorted[0].toLocaleString()}`;
+    }
+  }
+
+  function cleanup() {
+    buttons.forEach(b => { b.removeEventListener('click', onBtnClick); b.style.pointerEvents = 'none'; });
+  }
+
+  buttons.forEach(b => b.addEventListener('click', onBtnClick));
+  document.getElementById('seq-area')._cleanup = cleanup;
+
+  startTimer(() => {
+    cleanup();
+    evidenceFound();
+  });
+}
+
+function destroyEvidence() {
+  clearInterval(state.evidenceTimer);
+  const ev = state.evidenceQueue[state.currentEvidenceIdx];
+  state.totalDestroyed++;
+  state.levelDestroyed++;
+  // Destroying evidence reduces suspicion (but can't go below 5)
+  state.suspicion = Math.max(5, state.suspicion - 12);
+  updateSuspicionUI();
+  state.collected.push({ ...ev, destroyed: true, level: state.level });
+
+  // Clean up event listeners from the previous mini-game
+  const gameArea = document.getElementById('evidence-game');
+  if (gameArea.firstChild) {
+    const child = gameArea.firstChild;
+    if (child._cleanup) child._cleanup();
+  }
+
+  const resultsEl = document.getElementById('evidence-results');
+  resultsEl.innerHTML += `<div class="evidence-result destroyed">✅ 已销毁：${ev.icon} ${ev.name}<br><small>${ev.desc}</small></div>`;
+
+  state.currentEvidenceIdx++;
+  setTimeout(() => showNextEvidence(), 800);
+}
+
+function evidenceFound() {
+  clearInterval(state.evidenceTimer);
+  const ev = state.evidenceQueue[state.currentEvidenceIdx];
+  state.totalMissed++;
+  state.levelMissed++;
+  state.money = Math.max(0, state.money - 10);
+  state.collected.push({ ...ev, destroyed: false, level: state.level });
+  document.getElementById('money-display').textContent = `¥${state.money}`;
+
+  // Clean up
+  const gameArea = document.getElementById('evidence-game');
+  if (gameArea.firstChild && gameArea.firstChild._cleanup) {
+    gameArea.firstChild._cleanup();
+  }
+
+  const resultsEl = document.getElementById('evidence-results');
+  resultsEl.innerHTML += `<div class="evidence-result found">❌ 被发现了：${ev.icon} ${ev.name}（-¥10）<br><small>${ev.desc}</small></div>`;
+
+  state.currentEvidenceIdx++;
+  setTimeout(() => showNextEvidence(), 900);
+}
+
+function finishLevel() {
+  clearInterval(state.evidenceTimer);
+  state.phase = 'levelDone';
+
+  const miss = state.levelMissed;
+  const destroyed = state.levelDestroyed;
+
+  document.getElementById('done-icon').textContent = miss === 0 ? '😎' : miss <= 1 ? '😅' : '😰';
+  document.getElementById('done-title').textContent =
+    miss === 0 ? '完美！证据全销毁了！' :
+    miss <= 1 ? '差点被发现，还好跑得快' :
+    '完了，留下了不少证据……';
+
+  document.getElementById('done-summary').innerHTML = `
+    💰 当前收入：¥${state.money}<br>
+    ✅ 本关销毁：${destroyed} 个<br>
+    ❌ 被发现的：${miss} 个<br>
+    📊 总计销毁：${state.totalDestroyed} | 总计被发现：${state.totalMissed}<br>
+    📍 下一站：${state.level < 7 ? LEVELS[state.level + 1].name : '最终结局'}
+  `;
+
+  showScreen('screen-level-done');
+}
+
+function nextLevel() {
+  state.level++;
+  if (state.level >= LEVELS.length) {
+    showEnding();
+  } else {
+    showScreen('screen-game');
+    loadLevel();
+  }
+}
+
+function showEnding() {
+  const totalPenalty = state.missed * 10;
+  const busted = state.totalMissed >= 3;
+
+  document.getElementById('end-icon').textContent = busted ? '🚔' : '🍗';
+  document.getElementById('end-title').textContent = busted
+    ? '鸭腿大叔的摊子终于被端了！'
+    : '鸭腿大叔又逃过一劫！';
+
+  document.getElementById('end-stats').innerHTML = `
+    总收入：💰 ¥${state.money}<br>
+    销毁证据：✅ ${state.totalDestroyed} 个<br>
+    被发现的：❌ ${state.totalMissed} 个
+  `;
+
+  document.getElementById('end-flavor').textContent = busted
+    ? '市监局在8个景点找到了足够证据。鸭腿大叔表示："鸭腿大叔是一种精神，不是一种食材。"令人意外的是，8个景点的游客纷纷表示：其实味道还行，哎，可惜吧……'
+    : '鸭腿大叔笑到了最后。他的秘诀是——永远比游客跑得快一步。但平阴和东平的每一处石刻都记住了他。僧安道壹如果在天有灵，可能会题八个字：「精跨羲诞，腿越鸭鹅」。（僧安道壹：我没说啊！）';
+
+  showScreen('screen-ending');
+}
+</script>
+</body>
+</html>
