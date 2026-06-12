@@ -284,7 +284,15 @@ body {
       你必须在 8 个景点继续你的摆摊大业。<br>
       忽悠顾客，销毁证据，瞒天过海！
     </p>
-    <p style="font-size:12px;color:var(--text);margin-top:-8px;background:rgba(245,240,232,0.88);border:1.5px solid var(--accent);border-radius:8px;padding:8px 12px;display:inline-block;">🍗 吃过好几次鸭腿的霞客寻文旅创业团队荣誉出品</p>
+    <div style="text-align:left;font-size:12px;background:rgba(245,240,232,0.88);border:1.5px solid rgba(0,0,0,.12);border-radius:10px;padding:12px;margin-top:4px;line-height:1.8;">
+      <b>🎯 游戏目标：综合得分最高</b><br>
+      💰 <b>狂选离谱</b> → 金币多，但嫌疑暴涨 → 证据变多 → 更难全销毁<br>
+      🧠 <b>多用转移话题</b> → 金币一般，但嫌疑控制得好 → 证据少 → 稳稳全销毁<br>
+      🎯 <b>证据全销毁</b> → 得分翻倍 / 漏掉证据 → 得分打折扣<br>
+      ❤️ <b>3条命</b> → 嫌疑100扣一命，命用完游戏结束<br>
+      🏆 <b>通关结算</b> → 看你的总分能排第几！
+    </div>
+    <p style="font-size:12px;color:var(--text);margin-top:8px;background:rgba(245,240,232,0.88);border:1.5px solid var(--accent);border-radius:8px;padding:8px 12px;display:inline-block;">🍗 吃过好几次鸭腿的霞客寻文旅创业团队荣誉出品</p>
     <button class="btn-start" onclick="startGame()">🦆 开始摆摊</button>
   </div>
 
@@ -949,6 +957,8 @@ function pickChoice(idx) {
   const c = d.choices[idx];
 
   state.money += c.money;
+  // Track dodge choices for scoring
+  if (c.tag === 'dodge') state.dodgeCount = (state.dodgeCount || 0) + 1;
   // Apply difficulty multiplier to suspicion gain
   const suspicionGain = Math.round(c.suspicion * state.difficulty);
   state.suspicion = Math.min(100, state.suspicion + suspicionGain);
@@ -1016,12 +1026,16 @@ function loseLife(reason) {
 
 function gameOver(reason) {
   clearInterval(state.evidenceTimer);
+  const score = calcScore();
   document.getElementById('gameover-reason').textContent = reason;
   document.getElementById('gameover-stats').innerHTML = `
     到达关卡：第 ${state.level + 1} 关 ${LEVELS[state.level].name}<br>
     总收入：💰 ¥${state.money}<br>
-    销毁证据：✅ ${state.totalDestroyed} 个
+    销毁证据：✅ ${state.totalDestroyed} 个<br>
+    🏆 综合得分：<b>${score}</b>
   `;
+  // Save score
+  saveScore(score);
   showScreen('screen-gameover');
 }
 
@@ -1041,17 +1055,26 @@ function startEvidencePhase() {
   document.getElementById('evidence-area').style.display = 'flex';
   document.getElementById('evidence-results').innerHTML = '';
 
-  // Evidence count based on suspicion
-  const allEvidence = LEVELS[state.level].evidence;
-  let count;
-  if (state.suspicion < 30) count = Math.min(2, allEvidence.length);
-  else if (state.suspicion < 60) count = Math.min(3, allEvidence.length);
-  else count = allEvidence.length;
+  // Track suspicion for scoring
+  if (!state.suspicionLog) state.suspicionLog = [];
+  state.suspicionLog.push(state.suspicion);
 
-  // Pick 'count' evidence items (prefer variety, pick first N for simplicity)
-  // Shuffle and pick
+  // Evidence count based on suspicion — show explicit warning
+  const allEvidence = LEVELS[state.level].evidence;
+  let count, level;
+  if (state.suspicion < 30) { count = Math.min(2, allEvidence.length); level = '🟢 低嫌疑'; }
+  else if (state.suspicion < 60) { count = Math.min(3, allEvidence.length); level = '🟡 中嫌疑'; }
+  else { count = allEvidence.length; level = '🔴 高嫌疑'; }
+
   const shuffled = [...allEvidence].sort(() => Math.random() - 0.5);
   state.evidenceQueue = shuffled.slice(0, count);
+
+  // Show warning
+  const resultsEl = document.getElementById('evidence-results');
+  resultsEl.innerHTML = `<div style="background:rgba(0,0,0,.08);padding:10px;border-radius:8px;margin-bottom:8px;text-align:center;font-size:13px;">
+    ${level} → 游客注意到 <b>${count}</b> 个可疑点！<br>
+    <span style="font-size:11px;color:var(--muted);">嫌疑越低 → 证据越少 → 越容易全销毁 → 得分越高</span>
+  </div>`;
 
   showNextEvidence();
 }
@@ -1436,24 +1459,78 @@ function nextLevel() {
   }
 }
 
+function calcScore() {
+  const money = state.money;
+  const totalEv = state.totalDestroyed + state.totalMissed;
+  const destroyRate = totalEv > 0 ? state.totalDestroyed / totalEv : 1;
+  const livesBonus = (state.lives + 1) / 4; // 0-3 lives → 0.25-1.0
+  const avgSuspicion = (state.suspicionLog || []).reduce((a, b) => a + b, 0) / Math.max(1, (state.suspicionLog || []).length);
+  const suspicionFactor = Math.max(0.2, (100 - avgSuspicion) / 100);
+  const dodgeBonus = 1 + (state.dodgeCount || 0) * 0.02;
+  return Math.round(money * destroyRate * livesBonus * 4 * suspicionFactor * dodgeBonus);
+}
+
+function saveScore(score) {
+  try {
+    let lb = JSON.parse(localStorage.getItem('dyt_leaderboard') || '[]');
+    const name = prompt('🏆 上榜留名！请输入你的昵称（3-8字）：') || '匿名鸭腿';
+    lb.push({ name: name.slice(0, 8), score, date: new Date().toLocaleDateString() });
+    lb.sort((a, b) => b.score - a.score);
+    lb = lb.slice(0, 10);
+    localStorage.setItem('dyt_leaderboard', JSON.stringify(lb));
+    return lb;
+  } catch(e) { return []; }
+}
+
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem('dyt_leaderboard') || '[]'); }
+  catch(e) { return []; }
+}
+
 function showEnding() {
-  const totalPenalty = state.missed * 10;
   const busted = state.totalMissed >= 3;
+  const score = calcScore();
 
   document.getElementById('end-icon').textContent = busted ? '🚔' : '🍗';
   document.getElementById('end-title').textContent = busted
     ? '鸭腿大叔的摊子终于被端了！'
     : '鸭腿大叔又逃过一劫！';
 
+  const totalEv = state.totalDestroyed + state.totalMissed;
+  const destroyRate = totalEv > 0 ? Math.round(state.totalDestroyed / totalEv * 100) : 100;
+  const avgSusp = (state.suspicionLog || []).reduce((a, b) => a + b, 0) / Math.max(1, (state.suspicionLog || []).length);
+  const dodgeC = state.dodgeCount || 0;
+
   document.getElementById('end-stats').innerHTML = `
-    总收入：💰 ¥${state.money}<br>
-    销毁证据：✅ ${state.totalDestroyed} 个<br>
-    被发现的：❌ ${state.totalMissed} 个
+    <div style="margin-bottom:8px;font-size:13px;"><b>📊 得分拆解</b></div>
+    💰 金币收入：¥${state.money}<br>
+    🎯 销毁率：${state.totalDestroyed}/${totalEv}（${destroyRate}%）<br>
+    🧠 平均嫌疑：${Math.round(avgSusp)}%（越低越赚）<br>
+    💡 转移话题：${dodgeC} 次（最聪明的选择）<br>
+    ❤️ 剩余命：${'❤️'.repeat(state.lives)}<br>
+    <div style="font-weight:bold;font-size:18px;margin-top:6px;color:var(--accent);">🏆 综合得分：${score}</div>
   `;
 
   document.getElementById('end-flavor').textContent = busted
     ? '市监局在8个景点找到了足够证据。鸭腿大叔表示："鸭腿大叔是一种精神，不是一种食材。"令人意外的是，8个景点的游客纷纷表示：其实味道还行，哎，可惜吧……'
     : '鸭腿大叔笑到了最后。他的秘诀是——永远比游客跑得快一步。但平阴和东平的每一处石刻都记住了他。僧安道壹如果在天有灵，可能会题八个字：「精跨羲诞，腿越鸭鹅」。（僧安道壹：我没说啊！）';
+
+  // Save score and show leaderboard
+  const lb = saveScore(score);
+  if (lb.length > 0) {
+    const rank = lb.findIndex(e => e.score === score) + 1;
+    const lbHtml = lb.map((e, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
+      const isMe = e.score === score && e.name === lb.find(x => x.score === score).name;
+      return `<div style="${isMe ? 'background:rgba(192,57,43,.1);' : ''}padding:3px 6px;border-radius:4px;display:flex;justify-content:space-between;font-size:13px;">
+        <span>${medal} ${e.name}</span><span><b>${e.score}</b></span>
+      </div>`;
+    }).join('');
+    document.getElementById('end-stats').innerHTML += `
+      <div style="margin-top:10px;font-size:13px;"><b>🏅 排行榜</b></div>
+      ${lbHtml}
+    `;
+  }
 
   showScreen('screen-ending');
 }
