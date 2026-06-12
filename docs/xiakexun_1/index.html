@@ -24,6 +24,7 @@ body {
   color: var(--text);
   min-height: 100vh;
   display: flex;
+  touch-action: manipulation;
   justify-content: center;
   align-items: center;
   padding: 12px;
@@ -142,7 +143,7 @@ body {
 .tap-target {
   font-size: 56px; cursor: pointer; animation: popIn 0.3s ease;
   user-select: none; -webkit-tap-highlight-color: transparent;
-  transition: transform 0.05s;
+  transition: transform 0.05s; touch-action: manipulation;
 }
 .tap-target:active, .tap-target.tapped { transform: scale(0.85); }
 .tap-progress {
@@ -986,7 +987,9 @@ function pickChoice(idx) {
 function loseLife(reason) {
   clearInterval(state.evidenceTimer);
   state.lives--;
+  state.suspicion = 50; // Reset to 50% after losing a life
   document.getElementById('lives-display').textContent = '❤️'.repeat(state.lives) + '🖤'.repeat(3 - state.lives);
+  updateSuspicionUI();
 
   if (state.lives <= 0) {
     gameOver(reason);
