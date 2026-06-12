@@ -284,16 +284,24 @@ body {
       你必须在 8 个景点继续你的摆摊大业。<br>
       忽悠顾客，销毁证据，瞒天过海！
     </p>
-    <div style="text-align:left;font-size:12px;background:rgba(245,240,232,0.88);border:1.5px solid rgba(0,0,0,.12);border-radius:10px;padding:12px;margin-top:4px;line-height:1.8;">
-      <b>🎯 游戏目标：综合得分最高</b><br>
-      💰 <b>狂选离谱</b> → 金币多，但嫌疑暴涨 → 证据变多 → 更难全销毁<br>
-      🧠 <b>多用转移话题</b> → 金币一般，但嫌疑控制得好 → 证据少 → 稳稳全销毁<br>
-      🎯 <b>证据全销毁</b> → 得分翻倍 / 漏掉证据 → 得分打折扣<br>
-      ❤️ <b>3条命</b> → 嫌疑100扣一命，命用完游戏结束<br>
-      🏆 <b>通关结算</b> → 看你的总分能排第几！
+    <div style="text-align:left;font-size:12px;background:rgba(245,240,232,0.88);border:1.5px solid rgba(0,0,0,.12);border-radius:10px;padding:10px;margin-top:4px;line-height:1.7;">
+      <b>🎯 目标：赚最多的钱</b><br>
+      离谱 → 钱多嫌疑高 → 证据多 → 容易翻车<br>
+      转移 → 钱少嫌疑低 → 证据少 → 稳稳过关<br>
+      想拿高分？<b>在翻车的边缘反复横跳！</b>
     </div>
     <p style="font-size:12px;color:var(--text);margin-top:8px;background:rgba(245,240,232,0.88);border:1.5px solid var(--accent);border-radius:8px;padding:8px 12px;display:inline-block;">🍗 吃过好几次鸭腿的霞客寻文旅创业团队荣誉出品</p>
-    <button class="btn-start" onclick="startGame()">🦆 开始摆摊</button>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-start" onclick="startGame()">🦆 开始摆摊</button>
+      <button class="btn-start" style="background:var(--card);color:var(--text);border:1.5px solid rgba(0,0,0,.15);" onclick="showLeaderboard()">🏅 排行榜</button>
+    </div>
+  </div>
+
+  <!-- ====== LEADERBOARD SCREEN ====== -->
+  <div id="screen-leaderboard" class="screen">
+    <h2 style="text-align:center;">🏅 排行榜</h2>
+    <div id="leaderboard-list" style="margin:12px 0;"></div>
+    <button class="btn-start" onclick="showScreen('screen-title')" style="font-size:14px;padding:10px 24px;margin-top:12px;">↩️ 返回首页</button>
   </div>
 
   <!-- ====== GAME SCREEN ====== -->
@@ -1026,17 +1034,7 @@ function loseLife(reason) {
 
 function gameOver(reason) {
   clearInterval(state.evidenceTimer);
-  const score = calcScore();
-  document.getElementById('gameover-reason').textContent = reason;
-  document.getElementById('gameover-stats').innerHTML = `
-    到达关卡：第 ${state.level + 1} 关 ${LEVELS[state.level].name}<br>
-    总收入：💰 ¥${state.money}<br>
-    销毁证据：✅ ${state.totalDestroyed} 个<br>
-    🏆 综合得分：<b>${score}</b>
-  `;
-  // Save score
-  saveScore(score);
-  showScreen('screen-gameover');
+  showEnding();
 }
 
 function updateSuspicionUI() {
@@ -1146,7 +1144,7 @@ function showNextEvidence() {
 // ===== TAP GAME =====
 function startTapGame(ev, area, hint) {
   const tapsNeeded = 10;
-  const fixedTimerMs = 2000; // 2 seconds, fixed regardless of suspicion
+  const fixedTimerMs = Math.floor(Math.random() * 501) + 2000; // 2.0-2.5s random
   let taps = 0;
   area.innerHTML = `
     <div class="tap-target" id="tap-target">${ev.icon}</div>
@@ -1180,7 +1178,7 @@ function startTapGame(ev, area, hint) {
 
   // Fixed timer for tap game
   const timerEl = document.getElementById('evidence-timer');
-  timerEl.textContent = '⏱ 2.0s';
+  timerEl.textContent = `⏱ ${(fixedTimerMs/1000).toFixed(1)}s`;
   timerEl.className = 'timer';
   let remaining = fixedTimerMs;
   clearInterval(state.evidenceTimer);
@@ -1288,9 +1286,9 @@ function startDragGame(ev, area, hint) {
   target._cleanup = cleanup;
 
   // Fixed 1.5s timer for drag game
-  const dragTimerMs = 1500;
+  const dragTimerMs = Math.floor(Math.random() * 501) + 1300; // 1.3-1.8s random
   const dragTimerEl = document.getElementById('evidence-timer');
-  dragTimerEl.textContent = '⏱ 1.5s';
+  dragTimerEl.textContent = `⏱ ${(dragTimerMs/1000).toFixed(1)}s`;
   dragTimerEl.className = 'timer';
   let dragRemaining = dragTimerMs;
   clearInterval(state.evidenceTimer);
@@ -1373,10 +1371,25 @@ function startSequenceGame(ev, area, hint) {
   buttons.forEach(b => b.addEventListener('click', onBtnClick));
   document.getElementById('seq-area')._cleanup = cleanup;
 
-  startTimer(() => {
-    cleanup();
-    evidenceFound();
-  });
+  // Fixed 3s timer for sequence game
+  const seqTimerMs = Math.floor(Math.random() * 501) + 3000; // 3.0-3.5s random
+  const seqTimerEl = document.getElementById('evidence-timer');
+  seqTimerEl.textContent = `⏱ ${(seqTimerMs/1000).toFixed(1)}s`;
+  seqTimerEl.className = 'timer';
+  let seqRemaining = seqTimerMs;
+  clearInterval(state.evidenceTimer);
+  state.evidenceTimer = setInterval(() => {
+    seqRemaining -= 50;
+    if (seqRemaining <= 0) {
+      clearInterval(state.evidenceTimer);
+      cleanup();
+      evidenceFound();
+    } else {
+      const sec = seqRemaining / 1000;
+      seqTimerEl.textContent = `⏱ ${sec.toFixed(1)}s`;
+      if (sec < 1.0) seqTimerEl.classList.add('urgent');
+    }
+  }, 50);
 }
 
 function destroyEvidence() {
@@ -1460,26 +1473,20 @@ function nextLevel() {
 }
 
 function calcScore() {
-  const money = state.money;
-  const totalEv = state.totalDestroyed + state.totalMissed;
-  const destroyRate = totalEv > 0 ? state.totalDestroyed / totalEv : 1;
-  const livesBonus = (state.lives + 1) / 4; // 0-3 lives → 0.25-1.0
-  const avgSuspicion = (state.suspicionLog || []).reduce((a, b) => a + b, 0) / Math.max(1, (state.suspicionLog || []).length);
-  const suspicionFactor = Math.max(0.2, (100 - avgSuspicion) / 100);
-  const dodgeBonus = 1 + (state.dodgeCount || 0) * 0.02;
-  return Math.round(money * destroyRate * livesBonus * 4 * suspicionFactor * dodgeBonus);
+  return state.money;
 }
 
 function saveScore(score) {
   try {
     let lb = JSON.parse(localStorage.getItem('dyt_leaderboard') || '[]');
     const name = prompt('🏆 上榜留名！请输入你的昵称（3-8字）：') || '匿名鸭腿';
-    lb.push({ name: name.slice(0, 8), score, date: new Date().toLocaleDateString() });
+    const entry = { name: name.slice(0, 8), score, date: new Date().toLocaleDateString() };
+    lb.push(entry);
     lb.sort((a, b) => b.score - a.score);
     lb = lb.slice(0, 10);
     localStorage.setItem('dyt_leaderboard', JSON.stringify(lb));
-    return lb;
-  } catch(e) { return []; }
+    return { lb, myName: entry.name };
+  } catch(e) { return { lb: [], myName: '??' }; }
 }
 
 function getLeaderboard() {
@@ -1487,52 +1494,88 @@ function getLeaderboard() {
   catch(e) { return []; }
 }
 
-function showEnding() {
-  const busted = state.totalMissed >= 3;
-  const score = calcScore();
-
-  document.getElementById('end-icon').textContent = busted ? '🚔' : '🍗';
-  document.getElementById('end-title').textContent = busted
-    ? '鸭腿大叔的摊子终于被端了！'
-    : '鸭腿大叔又逃过一劫！';
-
-  const totalEv = state.totalDestroyed + state.totalMissed;
-  const destroyRate = totalEv > 0 ? Math.round(state.totalDestroyed / totalEv * 100) : 100;
-  const avgSusp = (state.suspicionLog || []).reduce((a, b) => a + b, 0) / Math.max(1, (state.suspicionLog || []).length);
-  const dodgeC = state.dodgeCount || 0;
-
-  document.getElementById('end-stats').innerHTML = `
-    <div style="margin-bottom:8px;font-size:13px;"><b>📊 得分拆解</b></div>
-    💰 金币收入：¥${state.money}<br>
-    🎯 销毁率：${state.totalDestroyed}/${totalEv}（${destroyRate}%）<br>
-    🧠 平均嫌疑：${Math.round(avgSusp)}%（越低越赚）<br>
-    💡 转移话题：${dodgeC} 次（最聪明的选择）<br>
-    ❤️ 剩余命：${'❤️'.repeat(state.lives)}<br>
-    <div style="font-weight:bold;font-size:18px;margin-top:6px;color:var(--accent);">🏆 综合得分：${score}</div>
-  `;
-
-  document.getElementById('end-flavor').textContent = busted
-    ? '市监局在8个景点找到了足够证据。鸭腿大叔表示："鸭腿大叔是一种精神，不是一种食材。"令人意外的是，8个景点的游客纷纷表示：其实味道还行，哎，可惜吧……'
-    : '鸭腿大叔笑到了最后。他的秘诀是——永远比游客跑得快一步。但平阴和东平的每一处石刻都记住了他。僧安道壹如果在天有灵，可能会题八个字：「精跨羲诞，腿越鸭鹅」。（僧安道壹：我没说啊！）';
-
-  // Save score and show leaderboard
-  const lb = saveScore(score);
-  if (lb.length > 0) {
-    const rank = lb.findIndex(e => e.score === score) + 1;
-    const lbHtml = lb.map((e, i) => {
+function showLeaderboard() {
+  const lb = getLeaderboard();
+  const list = document.getElementById('leaderboard-list');
+  if (lb.length === 0) {
+    list.innerHTML = '<p style="text-align:center;color:var(--muted);">暂无记录，通关后上榜！</p>';
+  } else {
+    list.innerHTML = lb.map((e, i) => {
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
-      const isMe = e.score === score && e.name === lb.find(x => x.score === score).name;
-      return `<div style="${isMe ? 'background:rgba(192,57,43,.1);' : ''}padding:3px 6px;border-radius:4px;display:flex;justify-content:space-between;font-size:13px;">
-        <span>${medal} ${e.name}</span><span><b>${e.score}</b></span>
+      return `<div style="display:flex;justify-content:space-between;padding:8px 12px;margin:4px 0;background:rgba(0,0,0,.04);border-radius:8px;font-size:14px;">
+        <span>${medal} <b>${e.name}</b></span>
+        <span style="color:var(--muted);font-size:12px;">${e.date || ''}</span>
+        <span style="color:var(--accent);font-weight:bold;">💰 ¥${e.score}</span>
       </div>`;
     }).join('');
-    document.getElementById('end-stats').innerHTML += `
-      <div style="margin-top:10px;font-size:13px;"><b>🏅 排行榜</b></div>
-      ${lbHtml}
-    `;
   }
+  showScreen('screen-leaderboard');
+}
+
+function getEnding() {
+  const m = state.money;
+  const missed = state.totalMissed;
+  const livesLost = 3 - state.lives;
+
+  if (livesLost === 0 && missed < 4 && m >= 350) return 'perfect';
+  if (m >= 400 && livesLost >= 1) return 'rich';
+  if (m < 200 && livesLost >= 2) return 'fugitive';
+  if (missed >= 4 && livesLost >= 1) return 'busted';
+  if (m < 150 && missed < 2) return 'honest';
+  return 'okay';
+}
+
+const ENDINGS = {
+  perfect:  { icon: '🍗', title: '完美犯罪',
+    flavor: '鸭腿大叔笑到了最后。他的秘诀是——永远比游客跑得快一步。但平阴和东平的每一处石刻都记住了他。僧安道壹如果在天有灵，可能会题八个字：「精跨羲诞，腿越鸭鹅」。（僧安道壹：我没说啊！）' },
+  rich:     { icon: '💰', title: '暴发户',
+    flavor: '鸭腿大叔的银行账户多了好几个零。虽然棘梁山的大佛盯着他摇头，文庙的孔子像也皱起了眉头——但他不在乎。钱是实打实的。"下次？下次我还敢。"' },
+  fugitive: { icon: '😰', title: '亡命天涯',
+    flavor: '从洪顶山逃到天池山，从3条命逃到只剩1条。鸭腿大叔的脚印遍布平阴、东平，但没有一处石刻愿意记住他。"僧安道壹刻经我逃命，他是文化人，我算什么。"说罢钻进一辆驶往隔壁县的中巴车，从此杳无音信。' },
+  busted:   { icon: '🚔', title: '摊子被端了',
+    flavor: '市监局在8个景点找到了足够证据。鸭腿大叔表示："鸭腿大叔是一种精神，不是一种食材。就好比果蔬汁是一种比喻，不是一种配方。"执法人员面无表情地开出了罚单。令人意外的是，8个景点的游客纷纷表示：其实味道还行，哎，可惜吧……' },
+  honest:   { icon: '😐', title: '老实人',
+    flavor: '没赚几个钱，但也没留什么把柄。鸭腿大叔看着微薄的收入叹了口气。旁边的种田大爷递来一根烟："小伙子，我养了二十年鸭子，要不要学学？"鸭腿大叔陷入了沉思。（亲亲，这边建议找个班上呢！）' },
+  okay:     { icon: '👍', title: '还行吧',
+    flavor: '赚了点小钱，丢了点证据，磕磕绊绊但总算混过去了。鸭腿大叔决定今晚加个鸭腿犒劳自己——打开冰箱，只剩一只发绿的。"果蔬汁腌的，"他对着空荡荡的厨房自言自语，"葱汁。是葱汁。"' }
+};
+
+function showEnding() {
+  const ending = getEnding();
+  const e = ENDINGS[ending];
+  const score = calcScore();
+
+  document.getElementById('end-icon').textContent = e.icon;
+  document.getElementById('end-title').textContent = e.title;
+
+  const { lb, myName } = saveScore(score);
+  const rank = lb.findIndex(x => x.name === myName) + 1;
+  const top2 = lb.slice(0, 2).map((entry, i) => {
+    const medal = i === 0 ? '🥇' : '🥈';
+    return `<span>${medal} ${entry.name} ¥${entry.score}</span>`;
+  }).join(' &nbsp;|&nbsp; ');
+
+  document.getElementById('end-stats').innerHTML = `
+    <div style="font-weight:bold;font-size:22px;color:var(--accent);">🏆 ¥${score}</div>
+    ${lb.length > 0 ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">你的排名：<b>第${rank}名</b></div>` : ''}
+    <div style="font-size:12px;color:var(--muted);margin-top:6px;">${lb.length > 1 ? '💰 富豪榜 &nbsp;' + top2 : '再玩一局冲上榜！'}</div>
+  `;
+
+  document.getElementById('end-flavor').innerHTML = `<small>${e.flavor}</small>`;
 
   showScreen('screen-ending');
+}
+// Debug: add ?debug to URL to skip to ending
+if (location.search.includes('debug')) {
+  state = {
+    level: 7, money: 420, suspicion: 45,
+    totalDestroyed: 18, totalMissed: 6,
+    lives: 2, difficulty: 1.6, dodgeCount: 8,
+    eventsFired: [], anyEventFired: true, _levelEventTriggered: false,
+    suspicionLog: [20,35,55,60,45,70,50,45],
+    collected: []
+  };
+  setTimeout(showEnding, 300);
 }
 </script>
 </body>
