@@ -1123,7 +1123,7 @@ function showNextEvidence() {
 
   switch (ev.game) {
     case 'tap':
-      hintText.textContent = '👆 猛点图标！在倒计时结束前打碎它！';
+      hintText.textContent = '🃏 翻牌配对！找出相同的销毁证据！';
       startTapGame(ev, gameArea, hint);
       break;
     case 'drag':
@@ -1141,57 +1141,93 @@ function showNextEvidence() {
   }
 }
 
-// ===== TAP GAME =====
+// ===== MATCH GAME (连连看，替代连击避免手机缩放) =====
 function startTapGame(ev, area, hint) {
-  const tapsNeeded = 10;
-  const fixedTimerMs = Math.floor(Math.random() * 501) + 2000; // 2.0-2.5s random
-  let taps = 0;
+  const pairs = 3; // 3 pairs = 6 cards
+  const icons = ['🔥','💣','⚡'];
+  // Build shuffled deck
+  const deck = [...icons, ...icons].sort(() => Math.random() - 0.5);
+  let flipped = []; // indices of currently flipped cards
+  let matched = 0;
+  let locked = false;
+
   area.innerHTML = `
-    <div class="tap-target" id="tap-target">${ev.icon}</div>
-    <div class="tap-count" id="tap-count">0 / ${tapsNeeded}</div>
-    <div class="tap-progress"><div class="tap-progress-fill" id="tap-fill"></div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:0 auto;" id="match-grid">
+      ${deck.map((icon, i) => `
+        <div class="match-card" data-idx="${i}" data-icon="${icon}" style="
+          width:70px;height:70px;background:rgba(0,0,0,.08);border-radius:8px;
+          display:flex;align-items:center;justify-content:center;font-size:32px;
+          cursor:pointer;user-select:none;touch-action:manipulation;
+          border:2px solid rgba(0,0,0,.12);
+        ">❓</div>
+      `).join('')}
+    </div>
   `;
-  hint.textContent = `猛点！${(fixedTimerMs/1000).toFixed(1)}秒内连击${tapsNeeded}下！`;
+  hint.textContent = '翻牌配对！找出相同的销毁证据！';
 
-  const target = document.getElementById('tap-target');
-  const countEl = document.getElementById('tap-count');
-  const fillEl = document.getElementById('tap-fill');
+  const matchTimerMs = Math.floor(Math.random() * 4001) + 8000; // 8-12s
 
-  function onTap(e) {
-    e.preventDefault();
-    taps++;
-    countEl.textContent = `${taps} / ${tapsNeeded}`;
-    fillEl.style.width = `${(taps / tapsNeeded) * 100}%`;
-    target.classList.add('tapped');
-    setTimeout(() => target.classList.remove('tapped'), 50);
-    if (taps >= tapsNeeded) {
-      clearInterval(state.evidenceTimer);
-      target.style.pointerEvents = 'none';
-      target.style.transform = 'scale(0.3)';
-      target.style.opacity = '0.3';
-      target.style.transition = 'all 0.3s';
-      destroyEvidence();
-    }
-  }
-  target.addEventListener('pointerdown', onTap);
-  target._cleanup = () => { target.removeEventListener('pointerdown', onTap); target.style.pointerEvents = 'none'; };
+  document.querySelectorAll('.match-card').forEach(card => {
+    card.addEventListener('click', function() {
+      if (locked) return;
+      const idx = parseInt(this.dataset.idx);
+      if (flipped.includes(idx)) return; // already flipped
+      if (this.textContent !== '❓') return; // already matched
 
-  // Fixed timer for tap game
+      // Flip
+      this.textContent = this.dataset.icon;
+      this.style.background = 'rgba(192,57,43,.15)';
+      flipped.push(idx);
+
+      if (flipped.length === 2) {
+        locked = true;
+        const [a, b] = flipped;
+        const cardA = document.querySelector(`[data-idx="${a}"]`);
+        const cardB = document.querySelector(`[data-idx="${b}"]`);
+
+        if (deck[a] === deck[b]) {
+          // Match!
+          cardA.style.background = 'rgba(39,174,96,.3)';
+          cardB.style.background = 'rgba(39,174,96,.3)';
+          cardA.style.pointerEvents = 'none';
+          cardB.style.pointerEvents = 'none';
+          matched++;
+          flipped = [];
+          locked = false;
+          if (matched >= pairs) {
+            clearInterval(state.evidenceTimer);
+            destroyEvidence();
+          }
+        } else {
+          // No match — flip back
+          setTimeout(() => {
+            cardA.textContent = '❓';
+            cardB.textContent = '❓';
+            cardA.style.background = 'rgba(0,0,0,.08)';
+            cardB.style.background = 'rgba(0,0,0,.08)';
+            flipped = [];
+            locked = false;
+          }, 300);
+        }
+      }
+    });
+  });
+
+  // Timer
   const timerEl = document.getElementById('evidence-timer');
-  timerEl.textContent = `⏱ ${(fixedTimerMs/1000).toFixed(1)}s`;
+  timerEl.textContent = `⏱ ${(matchTimerMs/1000).toFixed(1)}s`;
   timerEl.className = 'timer';
-  let remaining = fixedTimerMs;
+  let remaining = matchTimerMs;
   clearInterval(state.evidenceTimer);
   state.evidenceTimer = setInterval(() => {
     remaining -= 50;
     if (remaining <= 0) {
       clearInterval(state.evidenceTimer);
-      if (target._cleanup) target._cleanup();
       evidenceFound();
     } else {
       const sec = remaining / 1000;
       timerEl.textContent = `⏱ ${sec.toFixed(1)}s`;
-      if (sec < 0.5) timerEl.classList.add('urgent');
+      if (sec < 0.8) timerEl.classList.add('urgent');
     }
   }, 50);
 }
