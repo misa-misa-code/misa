@@ -1165,7 +1165,7 @@ function startTapGame(ev, area, hint) {
   `;
   hint.textContent = '翻牌配对！找出相同的销毁证据！';
 
-  const matchTimerMs = Math.floor(Math.random() * 4001) + 8000; // 8-12s
+  const matchTimerMs = Math.floor(Math.random() * 3001) + 6000; // 6-9s
 
   document.querySelectorAll('.match-card').forEach(card => {
     card.addEventListener('click', function() {
