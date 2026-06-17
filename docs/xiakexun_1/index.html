@@ -1165,7 +1165,7 @@ function startTapGame(ev, area, hint) {
   `;
   hint.textContent = '翻牌配对！找出相同的销毁证据！';
 
-  const matchTimerMs = Math.floor(Math.random() * 3001) + 6000; // 6-9s
+  const matchTimerMs = Math.floor(Math.random() * 2501) + 7500; // 7.5-10s
 
   document.querySelectorAll('.match-card').forEach(card => {
     card.addEventListener('click', function() {
@@ -1322,7 +1322,7 @@ function startDragGame(ev, area, hint) {
   target._cleanup = cleanup;
 
   // Fixed 1.5s timer for drag game
-  const dragTimerMs = Math.floor(Math.random() * 501) + 1300; // 1.3-1.8s random
+  const dragTimerMs = Math.floor(Math.random() * 701) + 1800; // 1.8-2.5s random
   const dragTimerEl = document.getElementById('evidence-timer');
   dragTimerEl.textContent = `⏱ ${(dragTimerMs/1000).toFixed(1)}s`;
   dragTimerEl.className = 'timer';
@@ -1408,7 +1408,7 @@ function startSequenceGame(ev, area, hint) {
   document.getElementById('seq-area')._cleanup = cleanup;
 
   // Fixed 3s timer for sequence game
-  const seqTimerMs = Math.floor(Math.random() * 501) + 3000; // 3.0-3.5s random
+  const seqTimerMs = Math.floor(Math.random() * 1001) + 4500; // 4.5-5.5s random
   const seqTimerEl = document.getElementById('evidence-timer');
   seqTimerEl.textContent = `⏱ ${(seqTimerMs/1000).toFixed(1)}s`;
   seqTimerEl.className = 'timer';
